@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Fit My Way
 
-# Run and deploy your AI Studio app
+Fit My Way è un’app per creare e gestire allenamenti a casa. L’app è completamente locale, non richiede backend, e utilizza IndexedDB per salvare esercizi e allenamenti.
 
-This contains everything you need to run your app locally.
+## Caratteristiche principali
 
-View your app in AI Studio: https://ai.studio/apps/drive/1n-CNfLiXbXoe-25vMxtNEvR73BMT68BB
+- Creazione e modifica di **esercizi**:
+  - Nome, gruppi muscolari (multi-select)
+  - Immagine/GIF di anteprima, posizione e zoom regolabili
+  - Note opzionali
 
-## Run Locally
+- Creazione e modifica di **allenamenti**:
+  - Gruppi di esercizi con set, ripetizioni o timer e peso
+  - Pausa tra set e tra esercizi
+  - Copertura opzionale con immagini preset
 
-**Prerequisites:**  Node.js
+- **Play allenamento**:
+  - Navigazione tra esercizi e set
+  - Visualizzazione timer/reps e kg
+  - Pausa e resume
+  - Log dei progressi
 
+- Filtri e ricerche:
+  - Barre di ricerca e filtri sempre fissi in alto
+  - Multi-select per gruppi muscolari
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
