@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, Workout, AppSettings } from './types';
+import { ViewState, Workout, AppSettings } from '../types';
 import { ExerciseManager } from './components/ExerciseManager';
 import { WorkoutManager } from './components/WorkoutManager';
 import { ActiveWorkout } from './components/ActiveWorkout';

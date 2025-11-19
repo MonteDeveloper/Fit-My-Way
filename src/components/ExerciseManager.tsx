@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Exercise, MUSCLE_GROUPS, ImageTransform, Workout, Language } from '../types';
 import { db } from '../services/db';
 import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, Clipboard, Dumbbell, ChevronRight, Activity, Copy } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Exercise, ImageTransform, Language, MUSCLE_GROUPS, Workout } from '@/types';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 

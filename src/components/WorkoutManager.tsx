@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Workout, Exercise, WorkoutExercise, WORKOUT_COVERS, ActiveSessionState, ImageTransform, MUSCLE_GROUPS, WorkoutSet, Language } from '../types';
 import { db } from '../services/db';
 import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, RotateCw, Clipboard, ChevronRight, Activity } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;
@@ -948,6 +948,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
               </div>
            </div>
         )}
+        </AnimatePresence>
     </div>
   );
 };
