@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
-import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, RotateCw, Clipboard, ChevronRight, Activity } from 'lucide-react';
+import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, ZoomOut, RotateCw, Clipboard, ChevronRight, Activity, RotateCcw, Check } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
+import { ActiveSessionState, Exercise, ImageTransform, Language, MUSCLE_GROUPS, Workout, WORKOUT_COVERS, WorkoutExercise, WorkoutSet } from '@/types';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;
@@ -46,6 +46,8 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
   const [coverTransform, setCoverTransform] = useState<ImageTransform>(DEFAULT_COVER_TRANSFORM);
   const [isDraggingCover, setIsDraggingCover] = useState(false);
   const dragStartRef = useRef<{x: number, y: number} | null>(null);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // State for expanding truncated titles in detail view
   const [isTitleExpanded, setIsTitleExpanded] = useState(false);
@@ -251,10 +253,12 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
     e.preventDefault();
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
+    
+    // Using transform: translate requires positive delta to move element with mouse
     setCoverTransform(prev => ({
       ...prev,
-      x: prev.x + (deltaX * 0.1),
-      y: prev.y + (deltaY * 0.1)
+      x: prev.x + (deltaX * 0.15),
+      y: prev.y + (deltaY * 0.15)
     }));
     dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
@@ -341,13 +345,16 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                             <div 
                                 key={workout.id}
                                 onClick={() => { setSelectedWorkout(workout); setMode('detail'); setIsTitleExpanded(false); }}
-                                className="relative w-full aspect-[21/9] bg-gray-900 rounded-2xl overflow-hidden shadow-md cursor-pointer group"
+                                className="relative w-full aspect-[21/9] bg-black rounded-2xl overflow-hidden shadow-md cursor-pointer group"
                             >
                                 <img 
                                     src={workout.coverImage} 
-                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity"
+                                    className="w-full h-full object-contain opacity-80 group-hover:opacity-60 transition-opacity"
                                     alt={workout.name}
-                                    style={{ transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`}}
+                                    style={{ 
+                                        transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
+                                        transformOrigin: 'center'
+                                    }}
                                     onError={(e) => {
                                         e.currentTarget.style.display = 'none';
                                         e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-gray-800', 'to-gray-900');
@@ -412,13 +419,16 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                             </div>
 
                             {/* SCROLLABLE BODY */}
-                            <div className="flex-1 overflow-y-auto">
-                                <div className="relative min-h-[16rem] w-full overflow-hidden bg-gray-900">
+                            <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+                                <div className="relative min-h-[16rem] w-full overflow-hidden bg-black">
                                     <img 
                                         src={selectedWorkout.coverImage} 
-                                        className="w-full h-full object-cover absolute inset-0"
+                                        className="w-full h-full object-contain absolute inset-0"
                                         alt="Cover"
-                                        style={{ transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`}}
+                                        style={{ 
+                                            transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
+                                            transformOrigin: 'center'
+                                        }}
                                         onError={(e) => {
                                             e.currentTarget.style.display = 'none';
                                             e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-gray-700', 'to-gray-900');
@@ -484,16 +494,16 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                                                         onClick={() => onNavigateToExercise && onNavigateToExercise(ex.exerciseId)}
                                                         className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/80 transition z-0 relative"
                                                     >
-                                                        <div className="w-20 aspect-[4/3] bg-gray-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative">
+                                                        <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
                                                             {exDef?.imageUrl ? (
                                                                 <img 
                                                                     src={exDef.imageUrl} 
-                                                                    className="w-full h-full object-cover" 
+                                                                    className="w-full h-full object-contain" 
                                                                     alt=""
                                                                     style={{ transform: `translate(${tImg.x}%, ${tImg.y}%) scale(${tImg.scale})`}}
                                                                     onError={(e) => e.currentTarget.style.display = 'none'}
                                                                 />
-                                                            ) : <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">{idx+1}</div>}
+                                                            ) : <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 bg-gray-200 dark:bg-slate-900">{idx+1}</div>}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <h4 className="font-bold text-base truncate mb-2">{exDef?.name || 'Unknown'}</h4>
@@ -555,15 +565,23 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                 {/* SCROLLABLE FORM */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
                     <div className="space-y-3">
-                        <div className="relative w-full aspect-[21/9] bg-gray-200 dark:bg-slate-800 rounded-2xl overflow-hidden border border-gray-300 dark:border-slate-700">
+                        <div className="relative w-full aspect-[21/9] bg-black rounded-2xl overflow-hidden border border-gray-300 dark:border-slate-700">
                             <img 
+                                key={editingWorkout.coverImage}
                                 src={editingWorkout.coverImage} 
-                                className="w-full h-full object-cover" 
+                                className="w-full h-full object-contain" 
                                 alt="Cover"
-                                style={{ transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`}}
+                                style={{ 
+                                    transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`,
+                                    transformOrigin: 'center'
+                                }}
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-gray-700', 'to-gray-900');
+                                }}
+                                onLoad={(e) => {
+                                    e.currentTarget.style.display = 'block';
+                                    e.currentTarget.parentElement?.classList.remove('bg-gradient-to-br', 'from-gray-700', 'to-gray-900');
                                 }}
                             />
                             <button 
@@ -751,24 +769,49 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                             onPointerLeave={() => {setIsDraggingCover(false); dragStartRef.current = null;}}
                         >
                             <img 
+                                key={editingWorkout.coverImage}
                                 src={editingWorkout.coverImage} 
-                                className="w-full h-full object-cover pointer-events-none select-none"
+                                className="w-full h-full object-contain pointer-events-none select-none"
                                 alt=""
-                                style={{ transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`}}
+                                style={{ 
+                                    transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`,
+                                    transformOrigin: 'center'
+                                }}
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-gray-800', 'to-gray-900');
                                 }}
+                                onLoad={(e) => {
+                                    e.currentTarget.style.display = 'block';
+                                    e.currentTarget.parentElement?.classList.remove('bg-gradient-to-br', 'from-gray-800', 'to-gray-900');
+                                }}
                             />
                         </div>
-                        <div className="flex items-center gap-3 pt-3">
-                            <ZoomIn size={16} className="text-gray-400"/>
-                            <input 
-                                type="range" min="1" max="3" step="0.1" 
-                                value={coverTransform.scale}
-                                onChange={e => setCoverTransform({...coverTransform, scale: parseFloat(e.target.value)})}
-                                className="flex-1 accent-primary h-2 bg-gray-200 rounded-lg appearance-none"
-                            />
+                        
+                        <div className="flex items-center gap-3 pt-3 justify-between">
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setCoverTransform(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.1) }))}
+                                    className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600"
+                                >
+                                    <ZoomOut size={16} />
+                                </button>
+                                <span className="text-xs text-gray-500 w-12 text-center font-mono">{coverTransform.scale.toFixed(1)}x</span>
+                                <button 
+                                    onClick={() => setCoverTransform(prev => ({ ...prev, scale: prev.scale + 0.1 }))}
+                                    className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600"
+                                >
+                                    <ZoomIn size={16} />
+                                </button>
+                            </div>
+                            
+                            <button 
+                                onClick={() => setCoverTransform(DEFAULT_COVER_TRANSFORM)}
+                                className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-500"
+                                title="Reset Transform"
+                            >
+                                <RotateCcw size={16} />
+                            </button>
                         </div>
                     </div>
 
@@ -893,43 +936,48 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                                         if(isSelected) setExModalSelected(prev => prev.filter(id => id !== e.id));
                                         else setExModalSelected(prev => [...prev, e.id]);
                                     }}
-                                    className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${isSelected ? 'border-primary bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800'}`}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-primary' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:border-primary/50'}`}
                                 >
-                                    <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 border-gray-300 dark:border-slate-600">
-                                        {isSelected && <div className="w-3 h-3 rounded-full bg-primary"></div>}
-                                    </div>
-                                    <div className="w-16 aspect-[4/3] bg-gray-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative">
+                                    <div className="w-16 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
                                         {e.imageUrl ? (
                                             <img 
                                                 src={e.imageUrl} 
-                                                className="w-full h-full object-cover" 
-                                                alt=""
+                                                className="w-full h-full object-contain"
                                                 style={{ transform: `translate(${tImg.x}%, ${tImg.y}%) scale(${tImg.scale})`}}
-                                                onError={(e) => e.currentTarget.style.display = 'none'}
+                                                onError={(ev) => ev.currentTarget.style.display = 'none'}
                                             />
-                                        ) : <ImageIcon className="text-gray-400 m-auto h-full"/>}
+                                        ) : <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-900"><ImageIcon size={16} className="text-gray-400"/></div>}
+                                        
+                                        {isSelected && (
+                                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                <div className="bg-primary text-white rounded-full p-1">
+                                                    <Check size={12} strokeWidth={3} />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="min-w-0">
-                                        <h4 className="font-bold text-sm truncate">{e.name}</h4>
-                                        <p className="text-xs text-gray-500 truncate">
-                                            {e.muscleGroups.map(m => tMuscles[m as keyof typeof tMuscles] || m).join(', ')}
-                                        </p>
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <div className="font-bold text-sm truncate">{e.name}</div>
+                                        <div className="text-xs text-gray-500 truncate">{e.muscleGroups.map(m => tMuscles[m as keyof typeof tMuscles] || m).join(', ')}</div>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-primary bg-primary text-white' : 'border-gray-300 dark:border-slate-600'}`}>
+                                        {isSelected && <Check size={14} strokeWidth={3} />}
                                     </div>
                                 </div>
                             );
-                        })
-                     }
-                     {allExercises.length === 0 && <div className="text-center text-gray-400 p-8">{tEx.noExercises}</div>}
+                        })}
                  </div>
             </div>
         )}
 
-        {workoutToDelete && (
-           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      </AnimatePresence>
+
+      {workoutToDelete && (
+           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 transform transition-all scale-100">
                  <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
                  <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {tCommon.confirmDelete} <span className="font-bold">"{selectedWorkout?.name}"</span>? {tCommon.cannotUndo}
+                    {tCommon.confirmDelete} <span className="font-bold">"{workouts.find(w => w.id === workoutToDelete)?.name}"</span>? {tCommon.cannotUndo}
                  </p>
                  <div className="flex gap-3">
                     <button 
@@ -948,7 +996,6 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
               </div>
            </div>
         )}
-        </AnimatePresence>
     </div>
   );
 };

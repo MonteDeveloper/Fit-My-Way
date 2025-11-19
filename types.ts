@@ -80,6 +80,7 @@ export const MUSCLE_GROUPS = [
 ];
 
 // Curated list of stable Unsplash IDs for fitness covers
+// EASILY MODIFIABLE: Add or remove URLs here.
 export const WORKOUT_COVERS = [
   'https://images.unsplash.com/photo-1517836357463-c25dfe94c0de?auto=format&fit=crop&w=800&q=80', // Gym generic
   'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80', // Dumbbells row

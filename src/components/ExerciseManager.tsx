@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
-import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, Clipboard, Dumbbell, ChevronRight, Activity, Copy } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, Dumbbell, ChevronRight, Activity, Copy, RotateCcw } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Exercise, ImageTransform, Language, MUSCLE_GROUPS, Workout } from '@/types';
+import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
@@ -270,19 +270,19 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                     onClick={() => openDetail(exercise)}
                     className="w-full text-left bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                     >
-                    <div className="w-20 aspect-[4/3] bg-gray-100 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative">
+                    <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
                         {exercise.imageUrl ? (
                             <img 
                                 src={exercise.imageUrl} 
                                 alt="" 
-                                className="w-full h-full object-cover" 
+                                className="w-full h-full object-contain" 
                                 style={{
                                 transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
                                 transformOrigin: 'center',
                             }}
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-700">
                                 <ImageIcon size={20} />
                             </div>
                         )}
@@ -366,12 +366,12 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         ))}
                     </div>
 
-                    <div className="w-full aspect-[4/3] bg-gray-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 relative">
+                    <div className="w-full aspect-[4/3] bg-black rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 relative">
                         {selectedExercise.imageUrl ? (
                         <img 
                             src={selectedExercise.imageUrl} 
                             alt={selectedExercise.name} 
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                             style={{
                                 transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
                                 transformOrigin: 'center',
@@ -379,7 +379,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                             onError={(e) => (e.currentTarget.style.display = 'none')}
                             />
                         ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-800">
                             <ImageIcon size={48} />
                         </div>
                         )}
@@ -418,21 +418,21 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                                             className="w-full text-left bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-slate-700 transition group"
                                         >
                                             <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-16 h-10 rounded-lg overflow-hidden relative bg-gray-200 dark:bg-slate-900 flex-shrink-0">
+                                                <div className="w-16 h-10 rounded-lg overflow-hidden relative bg-black flex-shrink-0">
                                                     {w.coverImage ? (
                                                         <img 
                                                             src={w.coverImage} 
                                                             alt="" 
-                                                            className="w-full h-full object-cover"
+                                                            className="w-full h-full object-contain"
                                                             style={{ transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`}}
                                                             onError={(e) => {
                                                                 e.currentTarget.style.display = 'none';
-                                                                e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                                                e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center', 'bg-gray-200');
                                                                 if(e.currentTarget.parentElement) e.currentTarget.parentElement.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
+                                                        <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-900">
                                                             <Activity size={16} className="text-gray-400"/>
                                                         </div>
                                                     )}
@@ -555,7 +555,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         <img 
                             src={formData.imageUrl} 
                             alt="Preview" 
-                            className="w-full h-full object-cover pointer-events-none select-none" 
+                            className="w-full h-full object-contain pointer-events-none select-none" 
                             style={{
                                 transform: `translate(${transform.x}%, ${transform.y}%) scale(${transform.scale})`,
                                 transformOrigin: 'center',
@@ -564,18 +564,30 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         />
                     </div>
 
-                    <div className="flex items-center gap-3 pt-2">
-                        <ZoomIn size={16} className="text-gray-400"/>
-                        <input 
-                            type="range" 
-                            min="1" 
-                            max="3" 
-                            step="0.1" 
-                            value={transform.scale}
-                            onChange={e => setTransform({...transform, scale: parseFloat(e.target.value)})}
-                            className="flex-1 accent-primary h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        />
-                        <span className="text-xs text-gray-500 w-8 text-right">{transform.scale.toFixed(1)}x</span>
+                    <div className="flex items-center gap-3 pt-2 justify-between">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setTransform(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.1) }))}
+                                className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600"
+                            >
+                                <ZoomOut size={16} />
+                            </button>
+                            <span className="text-xs text-gray-500 w-12 text-center font-mono">{transform.scale.toFixed(1)}x</span>
+                            <button 
+                                onClick={() => setTransform(prev => ({ ...prev, scale: prev.scale + 0.1 }))}
+                                className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600"
+                            >
+                                <ZoomIn size={16} />
+                            </button>
+                        </div>
+                        
+                        <button 
+                            onClick={() => setTransform(DEFAULT_TRANSFORM)}
+                            className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-500"
+                            title="Reset Transform"
+                        >
+                            <RotateCcw size={16} />
+                        </button>
                     </div>
                 </div>
                 )}
