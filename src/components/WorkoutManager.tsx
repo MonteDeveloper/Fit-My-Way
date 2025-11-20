@@ -1,52 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { db } from "../services/db";
-import {
-  Plus,
-  Play,
-  Pencil,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  X,
-  ChevronLeft,
-  Search,
-  Copy,
-  Clock,
-  Dumbbell,
-  Image as ImageIcon,
-  Move,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Clipboard,
-  ChevronRight,
-  Activity,
-  RotateCcw,
-  Check,
-  FileText,
-  Sparkles,
-  AlertCircle,
-  CheckCircle,
-  Info,
-} from "lucide-react";
-import { getTranslation } from "../utils/i18n";
-import { AnimatePresence, motion } from "framer-motion";
-import { TextImportModal } from "./TextImportModal";
-import {
-  Workout,
-  Language,
-  ImageTransform,
-  Exercise,
-  ActiveSessionState,
-  WORKOUT_COVERS,
-  WorkoutExercise,
-  WorkoutSet,
-  MUSCLE_GROUPS,
-} from "@/types";
-import {
-  parseAndValidateWorkouts,
-  generateAIPrompt,
-} from "../utils/importHelper";
+import React, { useState, useEffect, useRef } from 'react';
+import { db } from '../services/db';
+import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, ZoomOut, RotateCw, Clipboard, ChevronRight, Activity, RotateCcw, Check, FileText, Sparkles, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { getTranslation } from '../utils/i18n';
+import { AnimatePresence, motion } from 'framer-motion';
+import { TextImportModal } from './TextImportModal';
+import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
+import { generateAIPrompt, parseUniversalData } from '../utils/importHelper';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;
@@ -180,25 +139,39 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-      const newWorkouts = parseAndValidateWorkouts(jsonText, allExercises);
-      if (newWorkouts.length === 0) {
-        showAlert(
-          "Error",
-          "Import failed. Could not match any exercises.",
-          "error"
-        );
-        return;
+      const { newExercises, newWorkouts } = parseUniversalData(jsonText, allExercises);
+
+      // Save new exercises first
+      for (const ex of newExercises) {
+          await db.saveExercise(ex);
       }
+      
+      // Save workouts
       for (const w of newWorkouts) {
-        w.coverImage =
-          WORKOUT_COVERS[Math.floor(Math.random() * WORKOUT_COVERS.length)];
-        await db.saveWorkout(w);
+          if (!w.coverImage) {
+             w.coverImage = WORKOUT_COVERS[Math.floor(Math.random() * WORKOUT_COVERS.length)];
+          }
+          await db.saveWorkout(w);
       }
+      
       await refreshData();
       setShowImportModal(false);
-      showAlert(tCommon.done, t.importSuccess, "success");
+      
+      // Summary
+      const exList = newExercises.length > 0 
+        ? newExercises.map(e => `• ${e.name}`).join('\n') 
+        : tCommon.none;
+      const wkList = newWorkouts.length > 0 
+        ? newWorkouts.map(w => `• ${w.name}`).join('\n') 
+        : tCommon.none;
+
+      const createdSummary = `${tCommon.createdExercises}\n${exList}\n\n${tCommon.createdWorkouts}\n${wkList}`;
+
+      showAlert(tCommon.importSummaryTitle, createdSummary, 'success');
+
     } catch (e) {
-      showAlert("Error", t.importError, "error");
+      console.error(e);
+      showAlert("Error", t.importError, 'error');
     }
   };
 
@@ -1124,8 +1097,8 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
               </div>
             </div>
 
-            {/* FIXED FOOTER */}
-            <div className="flex-none p-4 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+            {/* FIXED FOOTER - WITH UNIVERSAL SAFE AREA */}
+            <div className="flex-none p-4 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md pb-safe-area">
               <button
                 onClick={handleSave}
                 className="w-full bg-primary text-white p-4 rounded-xl font-bold shadow-lg hover:bg-indigo-600 transition"
@@ -1141,7 +1114,6 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
           onClose={() => setShowImportModal(false)}
           onImport={handleMassImport}
           prompt={generateAIPrompt(
-            "workout",
             language,
             allExercises.map((e) => e.name)
           )}
@@ -1153,7 +1125,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
             <motion.div
               key="coverEditor"
               {...subModalVariants}
-              className="fixed inset-0 z-[60] bg-white dark:bg-dark flex flex-col"
+              className="fixed inset-0 z-[60] bg-white dark:bg-dark flex flex-col h-full"
             >
               <div className="p-4 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[40px_1fr_40px] items-center shadow-sm flex-none">
                 <button
@@ -1325,6 +1297,16 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* FIXED FOOTER FOR COVER EDITOR WITH SAFE AREA */}
+              <div className="flex-none p-4 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md pb-safe-area">
+                <button
+                  onClick={() => setShowCoverEditor(false)}
+                  className="w-full bg-primary text-white p-4 rounded-xl font-bold shadow-lg hover:bg-indigo-600 transition"
+                >
+                  {tCommon.done}
+                </button>
               </div>
             </motion.div>
           )}

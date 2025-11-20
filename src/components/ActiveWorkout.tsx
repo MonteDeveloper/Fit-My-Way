@@ -3,7 +3,7 @@ import { db } from '../services/db';
 import { Pause, Play, X, Timer, ChevronLeft, ChevronRight, SkipBack, SkipForward, CheckCircle, Image as ImageIcon, RotateCcw, AlertCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Exercise, Language, Workout } from '@/types';
+import { Workout, Language, Exercise } from '@/types';
 
 interface ActiveWorkoutProps {
   workout: Workout;
@@ -313,7 +313,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
 
       </div>
 
-      <div className="p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 pb-safe">
+      <div className="p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 pb-safe-area">
           <div className="grid grid-cols-4 gap-3">
               <button 
                 disabled={isFirstEx}

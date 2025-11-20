@@ -143,7 +143,7 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings }
       </div>
 
       <div className="text-center text-xs text-gray-400 pt-10">
-        Fit My Way • MonteDev
+        Fit My Way v1.1 • Local Only
       </div>
 
       <AnimatePresence>

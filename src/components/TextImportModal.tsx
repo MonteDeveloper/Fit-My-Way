@@ -46,7 +46,7 @@ export const TextImportModal: React.FC<TextImportModalProps> = ({
   const handlePaste = async () => {
     try {
       const clipText = await navigator.clipboard.readText();
-      if (clipText) setText(clipText);
+      if (clipText) setText(clipText); // Replaces text as requested
     } catch (err) {
       setErrorAlert("Cannot access clipboard. Please paste manually.");
     }
@@ -174,8 +174,8 @@ export const TextImportModal: React.FC<TextImportModalProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Footer */}
-            <div className="flex-none p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end gap-3 z-10">
+            {/* Footer with Safe Area */}
+            <div className="flex-none p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end gap-3 z-10 pb-safe-area">
                 <button 
                     onClick={onClose} 
                     className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"

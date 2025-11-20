@@ -5,7 +5,7 @@ import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
-import { parseAndValidateExercises, generateAIPrompt } from '../utils/importHelper';
+import { generateAIPrompt, parseUniversalData } from '../utils/importHelper';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
@@ -181,13 +181,34 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-        const newExercises = parseAndValidateExercises(jsonText);
+        // Use universal parser. Existing exercises passed for context.
+        const { newExercises, newWorkouts } = parseUniversalData(jsonText, exercises);
+        
+        let createdSummary = "";
+
         for (const ex of newExercises) {
             await db.saveExercise(ex);
         }
+        // Even if in Exercise mode, if the user asked for workouts, save them.
+        for (const w of newWorkouts) {
+            await db.saveWorkout(w);
+        }
+
         await loadData();
         setShowImportModal(false);
-        showAlert(tCommon.done, t.importSuccess, 'success');
+
+        // Build Summary
+        const exList = newExercises.length > 0 
+            ? newExercises.map(e => `• ${e.name}`).join('\n') 
+            : tCommon.none;
+        const wkList = newWorkouts.length > 0 
+            ? newWorkouts.map(w => `• ${w.name}`).join('\n') 
+            : tCommon.none;
+
+        createdSummary = `${tCommon.createdExercises}\n${exList}\n\n${tCommon.createdWorkouts}\n${wkList}`;
+
+        showAlert(tCommon.importSummaryTitle, createdSummary, 'success');
+
     } catch (e) {
         showAlert("Error", t.importError, 'error');
     }
@@ -738,7 +759,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
             </div>
             </div>
 
-            <div className="flex-none p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-dark">
+            <div className="flex-none p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-dark pb-safe-area">
             <button 
                 onClick={handleSave}
                 className="w-full p-4 rounded-xl text-white font-bold bg-primary hover:bg-indigo-600 shadow-lg shadow-indigo-500/20"
@@ -754,7 +775,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={handleMassImport}
-        prompt={generateAIPrompt('exercise', language)}
+        prompt={generateAIPrompt(language, exercises.map(e => e.name))}
         language={language}
       />
 
@@ -800,9 +821,9 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
+                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 max-h-[80vh] flex flex-col"
             >
-                <div className="flex flex-col items-center text-center mb-4">
+                <div className="flex-none flex flex-col items-center text-center mb-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
                         alertState.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-500' :
                         alertState.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' :
@@ -813,17 +834,22 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                          <Info size={24} />}
                     </div>
                     <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                </div>
+
+                <div className="flex-1 overflow-y-auto mb-6 w-full text-left">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm whitespace-pre-wrap">
                         {alertState.message}
                     </p>
                 </div>
                 
-                <button 
-                    onClick={closeAlert} 
-                    className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-                >
-                    {tCommon.close}
-                </button>
+                <div className="flex-none w-full">
+                    <button 
+                        onClick={closeAlert} 
+                        className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                        {tCommon.close}
+                    </button>
+                </div>
             </motion.div>
             </div>
         )}

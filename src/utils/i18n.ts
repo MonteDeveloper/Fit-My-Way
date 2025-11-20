@@ -28,6 +28,10 @@ export const translations = {
       info: 'Info',
       seeHow: 'See how',
       paste: 'Paste from Clipboard',
+      importSummaryTitle: 'Creation Summary',
+      createdExercises: 'Created Exercises:',
+      createdWorkouts: 'Created Workouts:',
+      none: 'None',
     },
     nav: {
       workouts: 'Workouts',
@@ -135,10 +139,10 @@ export const translations = {
       infoTitle: 'How to Generate with AI',
       step1: 'Copy the "System Prompt" below.',
       step2: 'Paste it into an external AI (ChatGPT, Gemini, Claude).',
-      step3: 'IMPORTANT: In the same chat, ask for what you want (e.g., "Create a chest workout" or "List of back exercises").',
+      step3: 'Ask for ANYTHING: "Create a chest workout", "List 5 ab exercises", or "Full body routine".',
       step4: 'Copy the JSON code the AI replies with.',
-      step5: 'Paste it in the box shown in the previous modal and press Generate.',
-      promptLabel: 'System Prompt (Defines the App Structure):',
+      step5: 'Paste it in the previous box and press Generate.',
+      promptLabel: 'System Prompt (Universal):',
     }
   },
   it: {
@@ -166,6 +170,10 @@ export const translations = {
       info: 'Info',
       seeHow: 'Vedi come fare',
       paste: 'Incolla',
+      importSummaryTitle: 'Riepilogo Creazione',
+      createdExercises: 'Esercizi Creati:',
+      createdWorkouts: 'Allenamenti Creati:',
+      none: 'Nessuno',
     },
     nav: {
       workouts: 'Allenamenti',
@@ -273,10 +281,10 @@ export const translations = {
       infoTitle: 'Come Generare con AI',
       step1: 'Copia il "Prompt di Sistema" qui sotto.',
       step2: 'Incollalo in una AI esterna (ChatGPT, Gemini, Claude).',
-      step3: 'IMPORTANTE: Nella stessa chat, chiedi cosa vuoi creare (es. "Crea un allenamento petto" o "Lista esercizi schiena").',
+      step3: 'Chiedi QUALSIASI cosa: "Crea allenamento petto", "Lista esercizi addome", o "Scheda full body".',
       step4: 'Copia il codice JSON che l\'AI ti risponde.',
-      step5: 'Incollalo nel box mostrato nella modale precedente e premi Genera.',
-      promptLabel: 'Prompt di Sistema (Definisce la Struttura App):',
+      step5: 'Incollalo nel box precedente e premi Genera.',
+      promptLabel: 'Prompt di Sistema (Universale):',
     }
   }
 };
