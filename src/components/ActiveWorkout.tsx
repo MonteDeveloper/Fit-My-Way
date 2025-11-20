@@ -1,15 +1,22 @@
-
 import React, { useState, useEffect } from 'react';
-import { Workout, Exercise, Language } from '../types';
 import { db } from '../services/db';
-import { Pause, Play, X, Timer, ChevronLeft, ChevronRight, SkipBack, SkipForward, CheckCircle, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Pause, Play, X, Timer, ChevronLeft, ChevronRight, SkipBack, SkipForward, CheckCircle, Image as ImageIcon, RotateCcw, AlertCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Exercise, Language, Workout } from '@/types';
 
 interface ActiveWorkoutProps {
   workout: Workout;
   resume?: boolean;
   onClose: () => void;
   language: Language;
+}
+
+interface AlertState {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
 }
 
 export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = false, onClose, language }) => {
@@ -27,6 +34,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
   
   const [setCountdown, setSetCountdown] = useState<number | null>(null);
   const [isSetCountdownRunning, setIsSetCountdownRunning] = useState(false);
+
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [alertState, setAlertState] = useState<AlertState | null>(null);
 
   const t = getTranslation(language).active;
   const tCommon = getTranslation(language).common;
@@ -125,11 +135,23 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
     
     try {
       await navigator.clipboard.writeText(logText);
-      alert(t.copied);
+      setAlertState({ 
+          isOpen: true, 
+          title: tCommon.done, 
+          message: t.copied, 
+          type: 'success' 
+      });
     } catch (e) {
       console.warn("Clipboard write failed", e);
+      // Still close if clipboard fails, but maybe show a small error? 
+      // Or just proceed since data is cleared.
+      onClose();
     }
-    onClose();
+  };
+
+  const handleCloseAlert = () => {
+      setAlertState(null);
+      onClose(); // Close the workout view after the success alert is dismissed
   };
 
   const prevExercise = () => {
@@ -169,9 +191,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
                 setIsResting(true);
             }
         } else {
-            if(window.confirm(t.finishConfirm)) {
-                handleFinish();
-            }
+            setShowFinishConfirm(true);
         }
     }
   };
@@ -315,7 +335,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
 
               {isFinishState ? (
                 <button 
-                    onClick={handleFinish}
+                    onClick={() => setShowFinishConfirm(true)}
                     className={`col-span-2 flex items-center justify-center p-3 rounded-xl transition border-2 active:scale-95 h-20 bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20`}
                 >
                     <div className="flex flex-col items-center">
@@ -363,6 +383,84 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
                 </button>
             </div>
       )}
+
+      {/* Finish Confirmation Modal */}
+      <AnimatePresence>
+        {showFinishConfirm && (
+             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
+                >
+                   <div className="flex flex-col items-center text-center mb-4">
+                       <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                           <CheckCircle size={24} />
+                       </div>
+                       <h3 className="font-bold text-xl mb-2">{t.finish}</h3>
+                       <p className="text-gray-500 dark:text-gray-400 text-sm">
+                          {t.finishConfirm}
+                       </p>
+                   </div>
+                   
+                   <div className="flex gap-3">
+                      <button 
+                         onClick={() => setShowFinishConfirm(false)} 
+                         className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                      >
+                         {tCommon.cancel}
+                      </button>
+                      <button 
+                         onClick={() => { setShowFinishConfirm(false); handleFinish(); }} 
+                         className="flex-1 py-3 bg-primary hover:bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-colors"
+                      >
+                         {t.finish}
+                      </button>
+                   </div>
+                </motion.div>
+             </div>
+        )}
+      </AnimatePresence>
+
+      {/* Success/Alert Modal */}
+      <AnimatePresence>
+        {alertState && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
+            >
+                <div className="flex flex-col items-center text-center mb-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                        alertState.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-500' :
+                        alertState.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' :
+                        'bg-blue-100 dark:bg-blue-900/30 text-blue-500'
+                    }`}>
+                        {alertState.type === 'error' ? <AlertCircle size={24} /> :
+                         alertState.type === 'success' ? <CheckCircle size={24} /> :
+                         <Info size={24} />}
+                    </div>
+                    <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {alertState.message}
+                    </p>
+                </div>
+                
+                <button 
+                    onClick={handleCloseAlert} 
+                    className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                    {tCommon.close}
+                </button>
+            </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

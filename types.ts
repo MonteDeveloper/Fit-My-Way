@@ -12,6 +12,11 @@ export interface Exercise {
   imageUrl?: string;
   imageTransform?: ImageTransform;
   notes?: string;
+  // New Default fields
+  defaultWeight?: number;
+  defaultRepValue?: number; // e.g. 10 (reps) or 30 (seconds)
+  defaultSetType?: SetType; // 'reps' or 'time'
+  defaultRestTime?: number; // Rest BETWEEN sets
 }
 
 export type SetType = 'reps' | 'time';

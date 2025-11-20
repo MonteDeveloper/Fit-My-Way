@@ -1,20 +1,43 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
-import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, Dumbbell, ChevronRight, Activity, Copy, RotateCcw } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, ChevronRight, Activity, Copy, RotateCcw, Sparkles, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TextImportModal } from './TextImportModal';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
+import { parseAndValidateExercises, generateAIPrompt } from '../utils/importHelper';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
 const DEFAULT_TRANSFORM: ImageTransform = { x: 0, y: 0, scale: 1 };
+
+// Animation Variants
+const mainModalVariants = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+  transition: { duration: 0.2 }
+};
+
+const subModalVariants = {
+  initial: { opacity: 0, x: -50 }, // Slide in from left
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -50, transition: { duration: 0.2 } }, // Slide out to left
+  transition: { duration: 0.2 }
+};
 
 interface ExerciseManagerProps {
   initialExerciseId?: string | null;
   onClearPendingId?: () => void;
   onNavigateToWorkout?: (id: string) => void;
   language: Language;
+}
+
+interface AlertState {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
 }
 
 export const ExerciseManager: React.FC<ExerciseManagerProps> = ({ 
@@ -28,7 +51,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   const [mode, setMode] = useState<ViewMode>('list');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // Changed to array for multi-select
   const [filterMuscles, setFilterMuscles] = useState<string[]>([]);
   
   const [workoutSearchTerm, setWorkoutSearchTerm] = useState('');
@@ -37,6 +59,9 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   const [transform, setTransform] = useState<ImageTransform>(DEFAULT_TRANSFORM);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{x: number, y: number} | null>(null);
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [alertState, setAlertState] = useState<AlertState | null>(null);
 
   const t = getTranslation(language).exercises;
   const tMuscles = getTranslation(language).muscles;
@@ -65,8 +90,28 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
     setWorkouts(wData);
   };
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info') => {
+    setAlertState({ isOpen: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertState(null);
+  };
+
   const handleSave = async () => {
     if (!formData.name) return;
+
+    // Check for duplicate name
+    const normalizedName = formData.name.trim().toLowerCase();
+    const duplicate = exercises.find(e => 
+        e.name.trim().toLowerCase() === normalizedName && 
+        e.id !== formData.id
+    );
+
+    if (duplicate) {
+        showAlert("Error", t.duplicateError || "Exercise name already exists.", 'error');
+        return;
+    }
 
     const exerciseToSave: Exercise = {
       id: formData.id || crypto.randomUUID(),
@@ -75,6 +120,10 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
       imageUrl: formData.imageUrl,
       imageTransform: transform,
       notes: formData.notes,
+      defaultWeight: formData.defaultWeight || 0,
+      defaultRepValue: formData.defaultRepValue || 10,
+      defaultSetType: formData.defaultSetType || 'reps',
+      defaultRestTime: formData.defaultRestTime || 60,
     };
 
     await db.saveExercise(exerciseToSave);
@@ -110,7 +159,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         setSelectedExercise(null);
       } catch (error) {
         console.error("Delete failed", error);
-        alert("Failed to delete exercise");
+        showAlert("Error", "Failed to delete exercise", 'error');
       } finally {
         setExerciseToDelete(null);
       }
@@ -126,19 +175,45 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
       }
     } catch (err) {
       console.error('Clipboard read failed', err);
-      alert("Unable to access clipboard automatically. Please check permissions or paste manually.");
+      showAlert("Error", "Unable to access clipboard automatically. Please check permissions or paste manually.", 'error');
+    }
+  };
+
+  const handleMassImport = async (jsonText: string) => {
+    try {
+        const newExercises = parseAndValidateExercises(jsonText);
+        for (const ex of newExercises) {
+            await db.saveExercise(ex);
+        }
+        await loadData();
+        setShowImportModal(false);
+        showAlert(tCommon.done, t.importSuccess, 'success');
+    } catch (e) {
+        showAlert("Error", t.importError, 'error');
     }
   };
 
   const openCreate = () => {
-    setFormData({ muscleGroups: [] });
+    setFormData({ 
+        muscleGroups: [],
+        defaultRepValue: 10,
+        defaultSetType: 'reps',
+        defaultWeight: 0,
+        defaultRestTime: 60
+    });
     setTransform(DEFAULT_TRANSFORM);
     setMode('edit');
     setSelectedExercise(null);
   };
 
   const openEdit = (exercise: Exercise) => {
-    setFormData({ ...exercise });
+    setFormData({ 
+        ...exercise,
+        defaultRepValue: exercise.defaultRepValue || 10,
+        defaultSetType: exercise.defaultSetType || 'reps',
+        defaultWeight: exercise.defaultWeight || 0,
+        defaultRestTime: exercise.defaultRestTime || 60
+    });
     setTransform(exercise.imageTransform || DEFAULT_TRANSFORM);
     setMode('edit');
   };
@@ -158,7 +233,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
     }
   };
 
-  // Multi-select toggle for main filter
   const toggleFilter = (muscle: string) => {
     if (filterMuscles.includes(muscle)) {
       setFilterMuscles(filterMuscles.filter(m => m !== muscle));
@@ -200,7 +274,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   });
 
   return (
-    // Use h-[100dvh] and flex-col to ensure fixed headers work correctly
     <div className="h-[100dvh] bg-white dark:bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait" initial={false}>
         {mode === 'list' && (
@@ -212,51 +285,63 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
             transition={{ duration: 0.2 }}
             className="flex flex-col h-full"
           >
-            {/* FIXED HEADER */}
-            <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 space-y-3 shadow-sm">
-                <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold truncate">{t.title}</h2>
-                <button 
-                    onClick={openCreate}
-                    className="bg-primary hover:bg-indigo-600 text-white p-2 rounded-full shadow-lg transition-all flex-shrink-0"
-                >
-                    <Plus size={24} />
-                </button>
+            <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 shadow-sm">
+                {/* Header Top Row */}
+                <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-2xl font-bold truncate">{t.title}</h2>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowImportModal(true)}
+                            className="w-11 h-11 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 shadow-md hover:shadow-purple-500/40 transition-all hover:scale-105 group p-[2px]"
+                            title={tCommon.generateText}
+                        >
+                            <div className="w-full h-full bg-white dark:bg-slate-800 rounded-full flex items-center justify-center group-hover:bg-white/90 dark:group-hover:bg-slate-800/90 transition-colors">
+                                <Sparkles size={24} className="text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                        </button>
+                        <button 
+                            onClick={openCreate}
+                            className="bg-primary hover:bg-indigo-600 text-white rounded-full shadow-lg transition-all flex-shrink-0 hover:scale-105 w-11 h-11 flex items-center justify-center"
+                        >
+                            <Plus size={24} />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                <div className="relative">
-                    <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                    type="text"
-                    placeholder={t.searchPlaceholder}
-                    className="w-full pl-10 p-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-primary outline-none"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                
-                {/* Multi-select filter bar */}
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-                    <button 
-                    onClick={() => setFilterMuscles([])}
-                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterMuscles.length === 0 ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
-                    >
-                    {t.muscleAll}
-                    </button>
-                    {MUSCLE_GROUPS.map(m => {
-                        const isActive = filterMuscles.includes(m);
-                        return (
-                            <button 
-                                key={m}
-                                onClick={() => toggleFilter(m)}
-                                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 border border-transparent'}`}
-                            >
-                                {tMuscles[m as keyof typeof tMuscles] || m}
-                            </button>
-                        );
-                    })}
-                </div>
+                <div className="space-y-3">
+                    {/* Search Bar */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                        <input 
+                        type="text"
+                        placeholder={t.searchPlaceholder}
+                        className="w-full pl-10 p-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-primary outline-none"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Filters Container - Placed BELOW search bar with proper spacing */}
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x pb-1">
+                        <button 
+                        onClick={() => setFilterMuscles([])}
+                        className={`snap-start px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${filterMuscles.length === 0 ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                        >
+                        {t.muscleAll}
+                        </button>
+                        {MUSCLE_GROUPS.map(m => {
+                            const isActive = filterMuscles.includes(m);
+                            return (
+                                <button 
+                                    key={m}
+                                    onClick={() => toggleFilter(m)}
+                                    className={`snap-start px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${isActive ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 border border-transparent'}`}
+                                >
+                                    {tMuscles[m as keyof typeof tMuscles] || m}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
@@ -310,10 +395,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         {mode === 'detail' && selectedExercise && (
           <motion.div
             key="detail"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
+            {...subModalVariants}
             className="fixed inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
           >
             {(() => {
@@ -326,17 +408,15 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
                 return (
                     <>
-                    <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between gap-2 shadow-sm">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <button onClick={() => setMode('list')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full flex-shrink-0 transition-colors">
-                                <ChevronLeft size={24} />
-                            </button>
-                            
-                            {/* Static Header Title */}
-                            <h2 className="text-xl font-bold truncate">
-                                {tCommon.exercise}
-                            </h2>
-                        </div>
+                    {/* Detail Header: Back Left, Title Center, Actions Right */}
+                    <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[auto_1fr_auto] items-center shadow-sm gap-4">
+                        <button onClick={() => setMode('list')} className="w-10 h-10 flex items-center justify-center rounded-full -ml-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                            <ChevronLeft size={24} />
+                        </button>
+                        
+                        <h2 className="text-xl font-bold truncate text-center">
+                            {tCommon.exercise}
+                        </h2>
                         
                         <div className="flex gap-2 flex-shrink-0">
                             <button onClick={() => handleDuplicate(selectedExercise)} className="p-2 text-gray-500 hover:text-primary bg-gray-50 dark:bg-slate-800 rounded-full transition-colors">
@@ -353,7 +433,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-6">
                     
-                    {/* Full Title in body */}
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words leading-tight">
                         {selectedExercise.name}
                     </h1>
@@ -460,18 +539,29 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         {mode === 'edit' && (
           <motion.div
             key="edit"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
+            {...(selectedExercise ? subModalVariants : mainModalVariants)}
             className="fixed inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
           >
-            <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
-            <button onClick={() => selectedExercise ? setMode('detail') : setMode('list')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                <ChevronLeft size={24} />
-            </button>
-            <h2 className="text-xl font-bold truncate">{selectedExercise ? t.editExercise : tCommon.create}</h2>
-            <div className="w-10"></div>
+            {/* Standardized Modal Header:
+                If Edit (Sub): Back Left, Title Center, Empty Right
+                If New (Main): Empty Left, Title Center, X Right 
+            */}
+            <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[40px_1fr_40px] items-center shadow-sm">
+                <div className="flex justify-start">
+                    {selectedExercise && (
+                        <button onClick={() => setMode('detail')} className="w-10 h-10 flex items-center justify-center rounded-full -ml-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                            <ChevronLeft size={24} />
+                        </button>
+                    )}
+                </div>
+                <h2 className="text-xl font-bold truncate text-center">{selectedExercise ? t.editExercise : tCommon.create}</h2>
+                <div className="flex justify-end">
+                     {!selectedExercise && (
+                        <button onClick={() => setMode('list')} className="w-10 h-10 flex items-center justify-center rounded-full -mr-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                            <X size={24} />
+                        </button>
+                     )}
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -504,6 +594,49 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                     </button>
                     );
                 })}
+                </div>
+            </div>
+
+            {/* Default Values Section */}
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defWeight}</label>
+                    <input 
+                        type="number"
+                        className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
+                        value={formData.defaultWeight || ''}
+                        onChange={e => setFormData({...formData, defaultWeight: Number(e.target.value)})}
+                        placeholder="0"
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defReps}</label>
+                    <div className="flex">
+                         <button 
+                            onClick={() => setFormData({...formData, defaultSetType: formData.defaultSetType === 'reps' ? 'time' : 'reps'})}
+                            className="px-3 bg-gray-200 dark:bg-slate-700 rounded-l-xl font-bold text-xs uppercase"
+                         >
+                            {formData.defaultSetType === 'reps' ? tWorkouts.reps : tWorkouts.time}
+                         </button>
+                         <input 
+                            type="number"
+                            className="w-full p-3 rounded-r-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
+                            value={formData.defaultRepValue || ''}
+                            onChange={e => setFormData({...formData, defaultRepValue: Number(e.target.value)})}
+                            placeholder="10"
+                        />
+                    </div>
+                </div>
+                {/* New Default Rest Input */}
+                <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defRest}</label>
+                    <input 
+                        type="number"
+                        className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
+                        value={formData.defaultRestTime || ''}
+                        onChange={e => setFormData({...formData, defaultRestTime: Number(e.target.value)})}
+                        placeholder="60"
+                    />
                 </div>
             </div>
 
@@ -617,30 +750,84 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         )}
       </AnimatePresence>
 
-      {exerciseToDelete && (
-           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 transform transition-all scale-100">
-                 <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
-                 <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {tCommon.confirmDelete} <span className="font-bold">"{exercises.find(e => e.id === exerciseToDelete)?.name}"</span>? {tCommon.cannotUndo}
-                 </p>
-                 <div className="flex gap-3">
-                    <button 
-                       onClick={() => setExerciseToDelete(null)} 
-                       className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600"
-                    >
-                       {tCommon.cancel}
-                    </button>
-                    <button 
-                       onClick={confirmDelete} 
-                       className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/20"
-                    >
-                       {tCommon.delete}
-                    </button>
-                 </div>
-              </div>
-           </div>
+      <TextImportModal 
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleMassImport}
+        prompt={generateAIPrompt('exercise', language)}
+        language={language}
+      />
+
+      <AnimatePresence>
+        {exerciseToDelete && (
+             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 transform transition-all"
+                >
+                   <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
+                   <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      {tCommon.confirmDelete} <span className="font-bold">"{exercises.find(e => e.id === exerciseToDelete)?.name}"</span>? {tCommon.cannotUndo}
+                   </p>
+                   <div className="flex gap-3">
+                      <button 
+                         onClick={() => setExerciseToDelete(null)} 
+                         className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600"
+                      >
+                         {tCommon.cancel}
+                      </button>
+                      <button 
+                         onClick={confirmDelete} 
+                         className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/20"
+                      >
+                         {tCommon.delete}
+                      </button>
+                   </div>
+                </motion.div>
+             </div>
+          )}
+      </AnimatePresence>
+
+      {/* Custom Alert Modal */}
+      <AnimatePresence>
+        {alertState && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
+            >
+                <div className="flex flex-col items-center text-center mb-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                        alertState.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-500' :
+                        alertState.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' :
+                        'bg-blue-100 dark:bg-blue-900/30 text-blue-500'
+                    }`}>
+                        {alertState.type === 'error' ? <AlertCircle size={24} /> :
+                         alertState.type === 'success' ? <CheckCircle size={24} /> :
+                         <Info size={24} />}
+                    </div>
+                    <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {alertState.message}
+                    </p>
+                </div>
+                
+                <button 
+                    onClick={closeAlert} 
+                    className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                    {tCommon.close}
+                </button>
+            </motion.div>
+            </div>
         )}
+      </AnimatePresence>
     </div>
   );
 };
