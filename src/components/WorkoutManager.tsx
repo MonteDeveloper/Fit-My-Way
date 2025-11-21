@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, ZoomOut, RotateCw, Clipboard, ChevronRight, Activity, RotateCcw, Check, FileText, Sparkles, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
-import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
+import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet } from '@/types';
 import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 
 interface WorkoutManagerProps {
@@ -40,6 +39,29 @@ interface AlertState {
   message: string;
   type: "success" | "error" | "info";
 }
+
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, style, rows = 1 }: any) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={className}
+      style={{ ...style, resize: 'none', overflow: 'hidden' }}
+      rows={rows}
+    />
+  );
+};
 
 export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
   onStartWorkout,
@@ -140,7 +162,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-      // Use updated parser which handles workout renaming
+      // PASS EXISTING WORKOUTS AND EXERCISES for duplicate handling
       const { newExercises, newWorkouts } = parseUniversalData(jsonText, allExercises, workouts);
 
       // Validate Images concurrently
@@ -477,31 +499,30 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                       setMode("detail");
                       setIsTitleExpanded(false);
                     }}
-                    className="relative w-full aspect-[21/9] bg-black rounded-2xl overflow-hidden shadow-md cursor-pointer group"
+                    className="relative w-full aspect-[21/9] bg-gray-200 dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md cursor-pointer group"
                   >
-                    <img
-                      src={workout.coverImage}
-                      className="w-full h-full object-contain opacity-80 group-hover:opacity-60 transition-opacity"
-                      alt={workout.name}
-                      style={{
-                        transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
-                        transformOrigin: "center",
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.parentElement?.classList.add(
-                          "bg-gradient-to-br",
-                          "from-gray-800",
-                          "to-gray-900"
-                        );
-                      }}
-                    />
-                    {!workout.coverImage && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                    {/* Fallback Icon */}
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                        <Activity size={48} />
+                    </div>
+                    
+                    {workout.coverImage && (
+                      <img
+                        src={workout.coverImage}
+                        className="absolute inset-0 w-full h-full object-contain bg-black opacity-80 group-hover:opacity-60 transition-opacity"
+                        alt={workout.name}
+                        style={{
+                          transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
+                          transformOrigin: "center",
+                        }}
+                        onError={(e) => e.currentTarget.style.display = "none"}
+                      />
                     )}
 
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/50 pointer-events-none"></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 p-4 text-white w-full">
+                    
+                    <div className="absolute bottom-0 left-0 p-4 text-white w-full z-10">
                       <h3 className="font-bold text-xl leading-tight mb-1 truncate pr-4">
                         {workout.name}
                       </h3>
@@ -586,27 +607,28 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                     className="flex-1 overflow-y-auto"
                     ref={scrollContainerRef}
                   >
-                    <div className="relative min-h-[16rem] w-full overflow-hidden bg-black">
-                      <img
-                        src={selectedWorkout.coverImage}
-                        className="w-full h-full object-contain absolute inset-0"
-                        alt="Cover"
-                        style={{
-                          transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
-                          transformOrigin: "center",
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.parentElement?.classList.add(
-                            "bg-gradient-to-br",
-                            "from-gray-700",
-                            "to-gray-900"
-                          );
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+                    <div className="relative w-full aspect-[21/9] overflow-hidden bg-gray-200 dark:bg-gray-800">
+                      {/* Fallback Icon */}
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                          <Activity size={64} />
+                      </div>
 
-                      <div className="absolute bottom-0 left-0 p-6 text-white z-10 w-full">
+                      {selectedWorkout.coverImage && (
+                         <img
+                          src={selectedWorkout.coverImage}
+                          className="w-full h-full object-contain absolute inset-0 bg-black z-10"
+                          alt="Cover"
+                          style={{
+                            transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
+                            transformOrigin: "center",
+                          }}
+                          onError={(e) => e.currentTarget.style.display = "none"}
+                        />
+                      )}
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-20"></div>
+
+                      <div className="absolute bottom-0 left-0 p-6 text-white z-30 w-full">
                         {/* Interactive Title: Click to expand/collapse. */}
                         <h1
                           onClick={() => setIsTitleExpanded(!isTitleExpanded)}
@@ -625,7 +647,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-4 space-y-6 relative z-10 bg-white dark:bg-dark rounded-t-3xl -mt-4 min-h-[calc(100vh-16rem)]">
+                    <div className="p-4 space-y-6 relative z-40 bg-white dark:bg-dark rounded-t-3xl -mt-4 min-h-[calc(100vh-16rem)] shadow-2xl">
                       <div className="flex justify-between items-center px-2">
                         <div className="flex gap-4">
                           <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
@@ -798,57 +820,47 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
             {/* SCROLLABLE FORM */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               <div className="space-y-3">
-                <div className="relative w-full aspect-[21/9] bg-black rounded-2xl overflow-hidden border border-gray-300 dark:border-slate-700">
+                <div className="relative w-full aspect-[21/9] bg-gray-200 dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-300 dark:border-slate-700">
+                  {/* Fallback Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                      <Activity size={48} />
+                  </div>
+
                   <img
                     key={editingWorkout.coverImage}
                     src={editingWorkout.coverImage}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain absolute inset-0 bg-black z-10"
                     alt="Cover"
                     style={{
                       transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`,
                       transformOrigin: "center",
                     }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      e.currentTarget.parentElement?.classList.add(
-                        "bg-gradient-to-br",
-                        "from-gray-700",
-                        "to-gray-900"
-                      );
-                    }}
-                    onLoad={(e) => {
-                      e.currentTarget.style.display = "block";
-                      e.currentTarget.parentElement?.classList.remove(
-                        "bg-gradient-to-br",
-                        "from-gray-700",
-                        "to-gray-900"
-                      );
-                    }}
+                    onError={(e) => e.currentTarget.style.display = 'none'}
                   />
                   <button
                     onClick={() => setShowCoverEditor(true)}
-                    className="absolute bottom-3 right-3 px-4 py-2 bg-white/90 dark:bg-black/60 text-sm font-bold rounded-lg backdrop-blur shadow-sm"
+                    className="absolute bottom-3 right-3 px-4 py-2 bg-white/90 dark:bg-black/60 text-sm font-bold rounded-lg backdrop-blur shadow-sm z-20"
                   >
                     {t.editCover}
                   </button>
                 </div>
 
-                <input
+                <AutoResizeTextarea
                   className="text-2xl font-bold w-full bg-transparent outline-none placeholder-gray-400"
                   placeholder={t.namePlaceholder}
                   value={editingWorkout.name}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingWorkout({
                       ...editingWorkout,
                       name: e.target.value,
                     })
                   }
                 />
-                <input
+                <AutoResizeTextarea
                   className="w-full bg-transparent outline-none text-gray-500"
                   placeholder={t.descPlaceholder}
                   value={editingWorkout.description || ""}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingWorkout({
                       ...editingWorkout,
                       description: e.target.value,
@@ -1115,6 +1127,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
 
         <TextImportModal
           isOpen={showImportModal}
@@ -1154,7 +1167,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                     </span>
                   </div>
                   <div
-                    className="w-full aspect-[21/9] bg-black rounded-xl overflow-hidden relative touch-none"
+                    className="w-full aspect-[21/9] bg-gray-200 dark:bg-gray-800 rounded-xl overflow-hidden relative touch-none border border-gray-300 dark:border-slate-700"
                     onPointerDown={handleCoverPointerDown}
                     onPointerMove={handleCoverPointerMove}
                     onPointerUp={() => {
@@ -1166,31 +1179,21 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                       dragStartRef.current = null;
                     }}
                   >
+                    {/* Fallback Icon */}
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                        <Activity size={48} />
+                    </div>
+
                     <img
                       key={editingWorkout.coverImage}
                       src={editingWorkout.coverImage}
-                      className="w-full h-full object-contain pointer-events-none select-none"
+                      className="w-full h-full object-contain pointer-events-none select-none bg-black absolute inset-0 z-10"
                       alt=""
                       style={{
                         transform: `translate(${coverTransform.x}%, ${coverTransform.y}%) scale(${coverTransform.scale})`,
                         transformOrigin: "center",
                       }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.parentElement?.classList.add(
-                          "bg-gradient-to-br",
-                          "from-gray-800",
-                          "to-gray-900"
-                        );
-                      }}
-                      onLoad={(e) => {
-                        e.currentTarget.style.display = "block";
-                        e.currentTarget.parentElement?.classList.remove(
-                          "bg-gradient-to-br",
-                          "from-gray-800",
-                          "to-gray-900"
-                        );
-                      }}
+                      onError={(e) => e.currentTarget.style.display = 'none'}
                     />
                   </div>
 
@@ -1320,247 +1323,76 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
         </AnimatePresence>
 
         <AnimatePresence>
-          {showAddExModal && (
-            <motion.div
-              key="addExModal"
-              {...subModalVariants}
-              className="fixed inset-0 z-[70] bg-white dark:bg-dark flex flex-col h-full"
-            >
-              {/* FIXED HEADER - Sub Modal: Back Left */}
-              <div className="flex-none p-4 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[40px_1fr_auto] items-center bg-white/95 dark:bg-dark/95 backdrop-blur-md z-10 shadow-sm">
-                <button
-                  onClick={() => setShowAddExModal(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-full -ml-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <h3 className="font-bold text-lg truncate text-center">
-                  {t.addExercises}
-                </h3>
-                <button
-                  onClick={handleAddSelectedExercises}
-                  disabled={exModalSelected.length === 0}
-                  className="px-4 py-2 bg-primary text-white rounded-full font-bold disabled:opacity-50 flex-shrink-0 ml-2"
-                >
-                  {t.add} ({exModalSelected.length})
-                </button>
-              </div>
-
-              {/* FIXED SEARCH & FILTERS - Swapped Order & Added spacing */}
-              <div className="flex-none p-4 space-y-3 bg-white dark:bg-dark border-b border-gray-100 dark:border-slate-800 z-10">
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-3 text-gray-400"
-                    size={18}
-                  />
-                  <input
-                    value={exModalSearch}
-                    onChange={(e) => setExModalSearch(e.target.value)}
-                    placeholder={tEx.searchPlaceholder}
-                    className="w-full pl-10 p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border-none outline-none"
-                  />
-                </div>
-
-                {/* Filters moved below search */}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x pb-1">
-                  <button
-                    onClick={() => setExModalFilters([])}
-                    className={`snap-start px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0 ${
-                      exModalFilters.length === 0
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 dark:bg-slate-800 text-gray-500"
-                    }`}
-                  >
-                    {tEx.muscleAll}
-                  </button>
-                  {MUSCLE_GROUPS.map((m) => {
-                    const isActive = exModalFilters.includes(m);
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => toggleExModalFilter(m)}
-                        className={`snap-start px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
-                          isActive
-                            ? "bg-primary text-white shadow-sm"
-                            : "bg-gray-100 dark:bg-slate-800 text-gray-500 border border-transparent"
-                        }`}
-                      >
-                        {tMuscles[m as keyof typeof tMuscles] || m}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* SCROLLABLE EXERCISE LIST */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {allExercises
-                  .filter((e) => {
-                    const matchesSearch = e.name
-                      .toLowerCase()
-                      .includes(exModalSearch.toLowerCase());
-                    const matchesFilter =
-                      exModalFilters.length > 0
-                        ? exModalFilters.some((m) => e.muscleGroups.includes(m))
-                        : true;
-                    return matchesSearch && matchesFilter;
-                  })
-                  .map((e) => {
-                    const isSelected = exModalSelected.includes(e.id);
-                    const tImg = e.imageTransform || { x: 0, y: 0, scale: 1 };
-                    return (
-                      <div
-                        key={e.id}
-                        onClick={() => {
-                          if (isSelected)
-                            setExModalSelected((prev) =>
-                              prev.filter((id) => id !== e.id)
-                            );
-                          else setExModalSelected((prev) => [...prev, e.id]);
-                        }}
-                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-indigo-50 dark:bg-indigo-900/20 border-primary"
-                            : "bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:border-primary/50"
-                        }`}
-                      >
-                        <div className="w-16 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
-                          {e.imageUrl ? (
-                            <img
-                              src={e.imageUrl}
-                              className="w-full h-full object-contain"
-                              style={{
-                                transform: `translate(${tImg.x}%, ${tImg.y}%) scale(${tImg.scale})`,
-                              }}
-                              onError={(ev) =>
-                                (ev.currentTarget.style.display = "none")
-                              }
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-900">
-                              <ImageIcon size={16} className="text-gray-400" />
-                            </div>
-                          )}
-
-                          {isSelected && (
-                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                              <div className="bg-primary text-white rounded-full p-1">
-                                <Check size={12} strokeWidth={3} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="font-bold text-sm truncate">
-                            {e.name}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {e.muscleGroups
-                              .map(
-                                (m) => tMuscles[m as keyof typeof tMuscles] || m
-                              )
-                              .join(", ")}
-                          </div>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            isSelected
-                              ? "border-primary bg-primary text-white"
-                              : "border-gray-300 dark:border-slate-600"
-                          }`}
-                        >
-                          {isSelected && <Check size={14} strokeWidth={3} />}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
           {workoutToDelete && (
-            <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 transform transition-all"
-              >
-                <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">
-                  {tCommon.confirmDelete}{" "}
-                  <span className="font-bold">
-                    "{workouts.find((w) => w.id === workoutToDelete)?.name}"
-                  </span>
-                  ? {tCommon.cannotUndo}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setWorkoutToDelete(null)}
-                    className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600"
-                  >
-                    {tCommon.cancel}
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/20"
-                  >
-                    {tCommon.delete}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
+             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
+                >
+                   <div className="flex flex-col items-center text-center mb-4">
+                       <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
+                       <p className="text-gray-500 dark:text-gray-400 text-sm">
+                          {tCommon.confirmDelete} <span className="font-bold">"{workouts.find(w => w.id === workoutToDelete)?.name}"</span>? {tCommon.cannotUndo}
+                       </p>
+                   </div>
+                   
+                   <div className="flex gap-3">
+                      <button 
+                         onClick={() => setWorkoutToDelete(null)} 
+                         className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                      >
+                         {tCommon.cancel}
+                      </button>
+                      <button 
+                         onClick={confirmDelete} 
+                         className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 transition-colors"
+                      >
+                         {tCommon.delete}
+                      </button>
+                   </div>
+                </motion.div>
+             </div>
           )}
         </AnimatePresence>
 
-        {/* Custom Alert Modal */}
         <AnimatePresence>
-          {alertState && (
+        {alertState && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-              <motion.div
+            <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
-              >
+            >
                 <div className="flex flex-col items-center text-center mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
-                      alertState.type === "error"
-                        ? "bg-red-100 dark:bg-red-900/30 text-red-500"
-                        : alertState.type === "success"
-                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500"
-                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-500"
-                    }`}
-                  >
-                    {alertState.type === "error" ? (
-                      <AlertCircle size={24} />
-                    ) : alertState.type === "success" ? (
-                      <CheckCircle size={24} />
-                    ) : (
-                      <Info size={24} />
-                    )}
-                  </div>
-                  <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm whitespace-pre-wrap">
-                    {alertState.message}
-                  </p>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                        alertState.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-500' :
+                        alertState.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' :
+                        'bg-blue-100 dark:bg-blue-900/30 text-blue-500'
+                    }`}>
+                        {alertState.type === 'error' ? <AlertCircle size={24} /> :
+                         alertState.type === 'success' ? <CheckCircle size={24} /> :
+                         <Info size={24} />}
+                    </div>
+                    <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm whitespace-pre-wrap">
+                        {alertState.message}
+                    </p>
                 </div>
-
-                <button
-                  onClick={closeAlert}
-                  className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                
+                <button 
+                    onClick={closeAlert} 
+                    className="w-full py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
                 >
-                  {tCommon.close}
+                    {tCommon.close}
                 </button>
-              </motion.div>
+            </motion.div>
             </div>
-          )}
-        </AnimatePresence>
+        )}
       </AnimatePresence>
     </div>
   );

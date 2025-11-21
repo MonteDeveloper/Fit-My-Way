@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, ChevronRight, Activity, Copy, RotateCcw, Sparkles, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
@@ -164,19 +163,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
       } finally {
         setExerciseToDelete(null);
       }
-    }
-  };
-
-  const handlePaste = async () => {
-    try {
-      // Directly replace content, same as GEN AI modal
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        setFormData(prev => ({ ...prev, imageUrl: text }));
-      }
-    } catch (err) {
-      console.error('Clipboard read failed', err);
-      showAlert("Error", "Unable to access clipboard automatically. Please check permissions or paste manually.", 'error');
     }
   };
 
@@ -682,12 +668,12 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                     </div>
                    
                     <button
-                    onClick={handlePaste}
-                    className="px-4 bg-gray-200 dark:bg-slate-700 rounded-xl flex items-center justify-center hover:bg-gray-300 dark:hover:bg-slate-600"
-                    title="Paste from Clipboard"
+                    onClick={() => setFormData({...formData, imageUrl: ''})}
+                    className="p-3 bg-gray-200 dark:bg-slate-700 rounded-xl flex items-center justify-center hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-500"
+                    title="Clear"
                     type="button"
                     >
-                    <Clipboard size={20} />
+                    <X size={20} />
                     </button>
                     <a 
                         href={`https://www.google.com/search?q=${encodeURIComponent(formData.name || '')}+gif&tbm=isch`}
@@ -789,13 +775,13 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
       <AnimatePresence>
         {exerciseToDelete && (
-             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700 transform transition-all"
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-slate-700"
                 >
                    <h3 className="font-bold text-xl mb-2">{t.deleteTitle}</h3>
                    <p className="text-gray-500 dark:text-gray-400 mb-6">

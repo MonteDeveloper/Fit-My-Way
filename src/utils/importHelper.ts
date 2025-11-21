@@ -22,9 +22,10 @@ const UNIVERSAL_SCHEMA = {
         fields: {
           name: 'String (Must match exercise name)',
           sets: 'Number',
-          reps: 'String/Number',
-          restBetweenSets: 'Number',
-          restAfterExercise: 'Number'
+          type: 'String ("reps" or "time")',
+          value: 'Number (Integer for reps count OR Seconds for time). MUST BE A NUMBER.',
+          restBetweenSets: 'Number (Seconds)',
+          restAfterExercise: 'Number (Seconds)'
         }
       }
     }
@@ -52,10 +53,7 @@ You are an expert fitness AI assistant for the "Fit My Way" app.
 LANGUAGE = ${language}
 Please output ONLY valid JSON data matching the structure below. No markdown.
 
-RULES FOR IMAGES:
-1. Use ONLY direct URLs to real images (jpg, png, webp, gif).
-2. **DO NOT** use placeholder sites, fake paths, or mockups.
-3. If you cannot find a REAL, direct image URL, omit the "imageUrl" field.
+RULES FOR IMAGES: do not provide any imageUrl, just leave the field empty string "".
 
 ${contextSection}
 
@@ -66,7 +64,7 @@ INSTRUCTIONS:
 1. Analyze request. Generate "workouts" or "exercises" or both.
 2. **Workouts:** Prioritize existing names from CONTEXT. Only create new exercises if necessary.
 3. **Exercises:** Populate "exercises" array.
-4. **Values:** Strict types. "muscleGroups" must match schema.
+4. **Values:** Strict types. "muscleGroups" must match schema. "value" for sets must ALWAYS be a number (e.g. 30 for 30s plank, 10 for 10 reps).
 5. **Formatting:** STRICT JSON. No comments. Use double quotes. Do NOT use smart quotes.
 
 IMPORTANT:
@@ -102,7 +100,7 @@ const cleanJSON = (str: string): string => {
     // Remove Comments
     clean = clean.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
-    // Replace Smart Quotes with Standard Quotes
+    // Replace Smart Quotes with Standard Quotes (Crucial for mobile input)
     clean = clean.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
 
     // Fix Trailing Commas (Regex looks for comma followed by closing bracket)
@@ -121,8 +119,8 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
     // Recover Strategies
     try {
        // Check for missing brackets
-       if (cleaned.startsWith('[') && !cleaned.endsWith(']')) raw = JSON.parse(cleaned + ']');
-       else if (cleaned.startsWith('{') && !cleaned.endsWith('}')) raw = JSON.parse(cleaned + '}');
+       if (cleaned.trim().startsWith('[') && !cleaned.trim().endsWith(']')) raw = JSON.parse(cleaned + ']');
+       else if (cleaned.trim().startsWith('{') && !cleaned.trim().endsWith('}')) raw = JSON.parse(cleaned + '}');
        else {
            // Try to extract first valid JSON object or array from chaos
            const match = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
@@ -176,12 +174,13 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
   existingExercises.forEach(e => existingExMap.set(e.name.toLowerCase().trim(), e));
 
   const createExercise = (item: any): Exercise | null => {
-      if (!item.name || typeof item.name !== 'string') return null;
-      const name = item.name.trim();
+      if (!item.name || (typeof item.name !== 'string' && typeof item.name !== 'number')) return null;
+      const name = String(item.name).trim();
       const normName = name.toLowerCase();
       
-      if (existingExMap.has(normName)) return null; // Reuse existing
-      if (processedExNames.has(normName)) return null; // De-dupe batch
+      // DUPLICATE CHECK: If exists, we do NOT return a new exercise, we skip it.
+      if (existingExMap.has(normName)) return null; 
+      if (processedExNames.has(normName)) return null; 
 
       const muscles = Array.isArray(item.muscleGroups) 
           ? item.muscleGroups.filter((m: any) => typeof m === 'string' && MUSCLE_GROUPS.includes(m))
@@ -200,6 +199,8 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
           defaultRestTime: 60
       };
       processedExNames.add(normName);
+      // Add to map so subsequent references in this batch find it
+      existingExMap.set(normName, ex); 
       return ex;
   };
 
@@ -210,15 +211,14 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
 
   // --- Process Workouts ---
   const newWorkouts: Workout[] = [];
-  const availableExMap = new Map<string, Exercise>();
-  [...existingExercises, ...newExercises].forEach(e => availableExMap.set(e.name.toLowerCase().trim(), e));
-
+  // Map is already populated with Existing + Newly Created from this batch
+  
   rawWorkouts.forEach((item: any) => {
       if (!item.name || typeof item.name !== 'string') return; // Skip invalid
       
       let finalName = item.name.trim();
       
-      // Workout Renaming Strategy
+      // WORKOUT DUPLICATE HANDLING: Progressive Naming
       const isTaken = (n: string) => {
           const low = n.toLowerCase();
           return existingWorkouts.some(w => w.name.toLowerCase() === low) ||
@@ -235,37 +235,54 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
       
       if (Array.isArray(item.exercises)) {
           item.exercises.forEach((exItem: any) => {
-              if (!exItem.name || typeof exItem.name !== 'string') return;
-              const exName = exItem.name.trim();
+              if (!exItem.name) return;
+              const exName = String(exItem.name).trim();
               const normExName = exName.toLowerCase();
               
               let exerciseId = '';
               
-              if (availableExMap.has(normExName)) {
-                  exerciseId = availableExMap.get(normExName)!.id;
+              if (existingExMap.has(normExName)) {
+                  exerciseId = existingExMap.get(normExName)!.id;
               } else {
                   // Auto-recover missing exercise (Salvage Strategy)
-                  // If workout asks for an exercise we don't have, create it on the fly
+                  // If the workout mentions an exercise we don't have, create it on the fly as a fallback
                   const newEx = createExercise({ name: exName, muscleGroups: ['Other'] });
                   if (newEx) {
                       newExercises.push(newEx);
-                      availableExMap.set(newEx.name.toLowerCase(), newEx);
+                      existingExMap.set(newEx.name.toLowerCase(), newEx);
                       exerciseId = newEx.id;
                   } else {
-                      return; // Skip if cannot create
+                      // Only fail if salvage fails (rare)
+                      return; 
                   }
               }
 
-              // Parse Sets
+              // Parse Sets, Type and Value
               const setCount = Number(exItem.sets) || 3;
-              const repStr = String(exItem.reps || '10');
-              const isTime = repStr.toLowerCase().includes('s') || repStr.toLowerCase().includes('min');
-              const val = parseInt(repStr.replace(/\D/g, '')) || 10;
+              
+              let setType: 'reps' | 'time' = 'reps';
+              let setValue = 10;
+
+              // Intelligent type detection
+              if (exItem.type === 'time' || exItem.type === 'reps') {
+                  setType = exItem.type;
+              } else if (typeof exItem.reps === 'string' && (exItem.reps.includes('s') || exItem.reps.includes('min'))) {
+                  setType = 'time';
+              }
+
+              // Intelligent value parsing
+              if (typeof exItem.value === 'number') {
+                  setValue = exItem.value;
+              } else if (typeof exItem.reps === 'number') {
+                  setValue = exItem.reps;
+              } else if (typeof exItem.reps === 'string') {
+                  setValue = parseInt(exItem.reps.replace(/\D/g, '')) || 10;
+              }
               
               const sets: WorkoutSet[] = Array.from({length: setCount}).map(() => ({
                   id: crypto.randomUUID(),
-                  type: isTime ? 'time' : 'reps',
-                  value: val,
+                  type: setType,
+                  value: setValue,
                   weight: 0
               }));
 
@@ -279,13 +296,13 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
           });
       }
       
-      // Allow workout creation only if it has valid exercises
+      // Only add workout if it has exercises (or we can allow empty, but generally better to have content)
       if (workoutExercises.length > 0) {
           newWorkouts.push({
               id: crypto.randomUUID(),
               name: finalName,
               description: typeof item.description === 'string' ? item.description : '',
-              coverImage: '',
+              coverImage: typeof item.coverImage === 'string' ? item.coverImage : '',
               coverTransform: { x: 0, y: 0, scale: 1 },
               exercises: workoutExercises,
               createdAt: Date.now()
@@ -294,10 +311,16 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
   });
 
   if (newExercises.length === 0 && newWorkouts.length === 0) {
-      // If raw was not empty but we filtered everything, check why.
-      // But usually if raw structure was OK, we return arrays (even if empty).
+      // It's possible the user pasted empty arrays, or our salvage logic found nothing valid.
+      // Check if we had raw data to begin with to give a better error.
       if (rawExercises.length > 0 || rawWorkouts.length > 0) {
-          // We found inputs but filtered them all (duplicates?). This is success.
+          // If we had raw items but created nothing, it implies strictly duplicates (for exercises) and empty workouts?
+          // Or duplication handling prevented exercise creation but we might have valid workouts using existing ones.
+          // If rawWorkouts > 0 and newWorkouts == 0, then workout parsing failed.
+          if (rawWorkouts.length > 0) {
+             throw new Error("Invalid generation: Workouts found but failed to parse valid exercises within them.");
+          }
+          // If only exercises and all were duplicates, we return empty arrays, which is technically valid (nothing new).
           return { newExercises: [], newWorkouts: [] };
       }
       throw new Error("Invalid generation: No valid exercises or workouts found in JSON.");
