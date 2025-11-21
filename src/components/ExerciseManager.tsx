@@ -4,6 +4,7 @@ import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, Zo
 import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
+import { OptimizedImage } from './OptimizedImage';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
 import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 
@@ -364,39 +365,47 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 {filtered.map(exercise => {
                 const tVal = exercise.imageTransform || DEFAULT_TRANSFORM;
                 return (
-                    <button 
-                    key={exercise.id} 
-                    onClick={() => openDetail(exercise)}
-                    className="w-full text-left bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                    <div 
+                        key={exercise.id}
+                        // LIST OPTIMIZATION: content-visibility acts like virtualization
+                        style={{ 
+                            contentVisibility: 'auto', 
+                            containIntrinsicSize: '80px' 
+                        }}
                     >
-                    <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {exercise.imageUrl ? (
-                            <img 
-                                src={exercise.imageUrl} 
-                                alt="" 
-                                className="w-full h-full object-contain" 
-                                style={{
-                                transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
-                                transformOrigin: 'center',
-                            }}
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-700">
-                                <ImageIcon size={20} />
-                            </div>
-                        )}
-                    </div>
+                        <button 
+                        onClick={() => openDetail(exercise)}
+                        className="w-full text-left bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                        <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
+                            {exercise.imageUrl ? (
+                                <OptimizedImage 
+                                    src={exercise.imageUrl} 
+                                    alt="" 
+                                    className="w-full h-full object-contain" 
+                                    style={{
+                                    transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
+                                    transformOrigin: 'center',
+                                }}
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-700">
+                                    <ImageIcon size={20} />
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate pr-2">{exercise.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {exercise.muscleGroups.map(m => tMuscles[m as keyof typeof tMuscles] || m).join(', ')}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg truncate pr-2">{exercise.name}</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {exercise.muscleGroups.map(m => tMuscles[m as keyof typeof tMuscles] || m).join(', ')}
+                            </p>
+                        </div>
+                        <div className="text-gray-400 flex-shrink-0">
+                            <ChevronLeft size={20} className="rotate-180" />
+                        </div>
+                        </button>
                     </div>
-                    <div className="text-gray-400 flex-shrink-0">
-                        <ChevronLeft size={20} className="rotate-180" />
-                    </div>
-                    </button>
                 );
                 })}
                 {filtered.length === 0 && (
@@ -469,7 +478,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                                 transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
                                 transformOrigin: 'center',
                             }}
-                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                            onError={(e) => e.currentTarget.style.display = 'none'}
                             />
                         ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-800">
@@ -513,16 +522,11 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <div className="w-16 h-10 rounded-lg overflow-hidden relative bg-black flex-shrink-0">
                                                     {w.coverImage ? (
-                                                        <img 
+                                                        <OptimizedImage 
                                                             src={w.coverImage} 
                                                             alt="" 
                                                             className="w-full h-full object-contain"
                                                             style={{ transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`}}
-                                                            onError={(e) => {
-                                                                e.currentTarget.style.display = 'none';
-                                                                e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center', 'bg-gray-200');
-                                                                if(e.currentTarget.parentElement) e.currentTarget.parentElement.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
-                                                            }}
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-900">

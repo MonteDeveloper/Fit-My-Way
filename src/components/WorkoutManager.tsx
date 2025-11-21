@@ -4,6 +4,7 @@ import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Sea
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
+import { OptimizedImage } from './OptimizedImage';
 import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet } from '@/types';
 import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 
@@ -500,6 +501,11 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                       setIsTitleExpanded(false);
                     }}
                     className="relative w-full aspect-[21/9] bg-gray-200 dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md cursor-pointer group"
+                    // LIST OPTIMIZATION: content-visibility acts like virtualization
+                    style={{ 
+                        contentVisibility: 'auto', 
+                        containIntrinsicSize: '160px' // Approximate height of card
+                    }}
                   >
                     {/* Fallback Icon */}
                     <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -507,22 +513,23 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                     </div>
                     
                     {workout.coverImage && (
-                      <img
-                        src={workout.coverImage}
-                        className="absolute inset-0 w-full h-full object-contain bg-black opacity-80 group-hover:opacity-60 transition-opacity"
-                        alt={workout.name}
-                        style={{
-                          transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
-                          transformOrigin: "center",
-                        }}
-                        onError={(e) => e.currentTarget.style.display = "none"}
-                      />
+                      <div className="absolute inset-0 z-10">
+                        <OptimizedImage
+                            src={workout.coverImage}
+                            alt={workout.name}
+                            className="w-full h-full object-contain opacity-80 group-hover:opacity-60 transition-opacity"
+                            style={{
+                                transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
+                                transformOrigin: "center",
+                            }}
+                        />
+                      </div>
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/50 pointer-events-none"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/50 pointer-events-none z-20"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none z-20"></div>
                     
-                    <div className="absolute bottom-0 left-0 p-4 text-white w-full z-10">
+                    <div className="absolute bottom-0 left-0 p-4 text-white w-full z-30">
                       <h3 className="font-bold text-xl leading-tight mb-1 truncate pr-4">
                         {workout.name}
                       </h3>
@@ -614,16 +621,18 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                       </div>
 
                       {selectedWorkout.coverImage && (
+                        <div className="absolute inset-0 z-10">
                          <img
                           src={selectedWorkout.coverImage}
-                          className="w-full h-full object-contain absolute inset-0 bg-black z-10"
+                          className="w-full h-full object-contain"
                           alt="Cover"
                           style={{
                             transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`,
                             transformOrigin: "center",
                           }}
-                          onError={(e) => e.currentTarget.style.display = "none"}
+                          onError={(e) => e.currentTarget.style.display = 'none'}
                         />
+                        </div>
                       )}
                       
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-20"></div>
@@ -719,16 +728,13 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                               >
                                 <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
                                   {exDef?.imageUrl ? (
-                                    <img
+                                    <OptimizedImage
                                       src={exDef.imageUrl}
                                       className="w-full h-full object-contain"
                                       alt=""
                                       style={{
                                         transform: `translate(${tImg.x}%, ${tImg.y}%) scale(${tImg.scale})`,
                                       }}
-                                      onError={(e) =>
-                                        (e.currentTarget.style.display = "none")
-                                      }
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 bg-gray-200 dark:bg-slate-900">
@@ -1291,17 +1297,10 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                             : "border-transparent"
                         }`}
                       >
-                        <img
+                        <OptimizedImage
                           src={url}
                           className="w-full h-full object-cover"
-                          loading="lazy"
-                          alt=""
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.parentElement?.classList.add(
-                              "bg-gray-800"
-                            );
-                          }}
+                          // In Preset list, we might want to see them quickly, but consistency is fine.
                         />
                       </button>
                     ))}
