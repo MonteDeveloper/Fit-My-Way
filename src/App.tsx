@@ -191,7 +191,7 @@ const App: React.FC = () => {
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
-                      className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 z-40 pb-safe"
+                      className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 z-40 pb-safe pb-5"
                     >
                       <div className="max-w-md mx-auto flex justify-around items-center p-3">
                         <button 
