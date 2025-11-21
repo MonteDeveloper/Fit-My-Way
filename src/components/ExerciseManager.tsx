@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, ChevronRight, Activity, Copy, RotateCcw, Sparkles, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
@@ -5,7 +6,7 @@ import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
-import { parseUniversalData, generateAIPrompt, validateImageUrls } from '../utils/importHelper';
+import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
@@ -181,8 +182,8 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-        // Use universal parser with error throwing
-        const { newExercises, newWorkouts } = parseUniversalData(jsonText, exercises);
+        // Use universal parser with error throwing and workout duplicate handling
+        const { newExercises, newWorkouts } = parseUniversalData(jsonText, exercises, workouts);
         
         // Validate Images concurrently (client-side check)
         const validatedExercises = await validateImageUrls(newExercises);
@@ -308,7 +309,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
             key="list"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: 0 }}
             transition={{ duration: 0.2 }}
             className="flex flex-col h-full"
           >
@@ -569,10 +570,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
             {...(selectedExercise ? subModalVariants : mainModalVariants)}
             className="fixed inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
           >
-            {/* Standardized Modal Header:
-                If Edit (Sub): Back Left, Title Center, Empty Right
-                If New (Main): Empty Left, Title Center, X Right 
-            */}
+            {/* Standardized Modal Header */}
             <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[40px_1fr_40px] items-center shadow-sm">
                 <div className="flex justify-start">
                     {selectedExercise && (

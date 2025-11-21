@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, ZoomOut, RotateCw, Clipboard, ChevronRight, Activity, RotateCcw, Check, FileText, Sparkles, AlertCircle, CheckCircle, Info } from 'lucide-react';
@@ -5,7 +6,7 @@ import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
 import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
-import { parseUniversalData, generateAIPrompt, validateImageUrls } from '../utils/importHelper';
+import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;
@@ -139,7 +140,8 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-      const { newExercises, newWorkouts } = parseUniversalData(jsonText, allExercises);
+      // Use updated parser which handles workout renaming
+      const { newExercises, newWorkouts } = parseUniversalData(jsonText, allExercises, workouts);
 
       // Validate Images concurrently
       const validatedExercises = await validateImageUrls(newExercises);
