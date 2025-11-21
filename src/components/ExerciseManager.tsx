@@ -5,7 +5,7 @@ import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
-import { generateAIPrompt, parseUniversalData } from '../utils/importHelper';
+import { parseUniversalData, generateAIPrompt, validateImageUrls } from '../utils/importHelper';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
@@ -168,7 +168,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
   const handlePaste = async () => {
     try {
-      setFormData(prev => ({ ...prev, imageUrl: '' }));
+      // Directly replace content, same as GEN AI modal
       const text = await navigator.clipboard.readText();
       if (text) {
         setFormData(prev => ({ ...prev, imageUrl: text }));
@@ -181,12 +181,15 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
   const handleMassImport = async (jsonText: string) => {
     try {
-        // Use universal parser. Existing exercises passed for context.
+        // Use universal parser with error throwing
         const { newExercises, newWorkouts } = parseUniversalData(jsonText, exercises);
         
+        // Validate Images concurrently (client-side check)
+        const validatedExercises = await validateImageUrls(newExercises);
+
         let createdSummary = "";
 
-        for (const ex of newExercises) {
+        for (const ex of validatedExercises) {
             await db.saveExercise(ex);
         }
         // Even if in Exercise mode, if the user asked for workouts, save them.
@@ -198,8 +201,8 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         setShowImportModal(false);
 
         // Build Summary
-        const exList = newExercises.length > 0 
-            ? newExercises.map(e => `• ${e.name}`).join('\n') 
+        const exList = validatedExercises.length > 0 
+            ? validatedExercises.map(e => `• ${e.name}`).join('\n') 
             : tCommon.none;
         const wkList = newWorkouts.length > 0 
             ? newWorkouts.map(w => `• ${w.name}`).join('\n') 
@@ -209,8 +212,11 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
         showAlert(tCommon.importSummaryTitle, createdSummary, 'success');
 
-    } catch (e) {
-        showAlert("Error", t.importError, 'error');
+    } catch (e: any) {
+        console.error(e);
+        const errorDetail = e.message || "Unknown error";
+        const displayMsg = `${tCommon.jsonError}\n\n${tCommon.jsonErrorHelp}\n${errorDetail}`;
+        showAlert("Error", displayMsg, 'error');
     }
   };
 
@@ -618,46 +624,50 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 </div>
             </div>
 
-            {/* Default Values Section */}
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defWeight}</label>
-                    <input 
-                        type="number"
-                        className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
-                        value={formData.defaultWeight || ''}
-                        onChange={e => setFormData({...formData, defaultWeight: Number(e.target.value)})}
-                        placeholder="0"
-                    />
+            {/* Default Values Section - Grouped */}
+            <div className="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-4 border border-gray-100 dark:border-slate-700 space-y-3">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-2">
+                    {t.defaults}
                 </div>
-                <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defReps}</label>
-                    <div className="flex">
-                         <button 
-                            onClick={() => setFormData({...formData, defaultSetType: formData.defaultSetType === 'reps' ? 'time' : 'reps'})}
-                            className="px-3 bg-gray-200 dark:bg-slate-700 rounded-l-xl font-bold text-xs uppercase"
-                         >
-                            {formData.defaultSetType === 'reps' ? tWorkouts.reps : tWorkouts.time}
-                         </button>
-                         <input 
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{t.defWeight}</label>
+                        <input 
                             type="number"
-                            className="w-full p-3 rounded-r-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
-                            value={formData.defaultRepValue || ''}
-                            onChange={e => setFormData({...formData, defaultRepValue: Number(e.target.value)})}
-                            placeholder="10"
+                            className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:border-primary outline-none text-sm shadow-sm"
+                            value={formData.defaultWeight || ''}
+                            onChange={e => setFormData({...formData, defaultWeight: Number(e.target.value)})}
+                            placeholder="0"
                         />
                     </div>
-                </div>
-                {/* New Default Rest Input */}
-                <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.defRest}</label>
-                    <input 
-                        type="number"
-                        className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border border-transparent focus:border-primary outline-none"
-                        value={formData.defaultRestTime || ''}
-                        onChange={e => setFormData({...formData, defaultRestTime: Number(e.target.value)})}
-                        placeholder="60"
-                    />
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{t.defReps}</label>
+                        <div className="flex shadow-sm">
+                            <button 
+                                onClick={() => setFormData({...formData, defaultSetType: formData.defaultSetType === 'reps' ? 'time' : 'reps'})}
+                                className="px-3 bg-gray-100 dark:bg-slate-700 rounded-l-xl font-bold text-[10px] uppercase border-y border-l border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                                {formData.defaultSetType === 'reps' ? tWorkouts.reps : tWorkouts.time}
+                            </button>
+                            <input 
+                                type="number"
+                                className="w-full p-3 rounded-r-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:border-primary outline-none text-sm"
+                                value={formData.defaultRepValue || ''}
+                                onChange={e => setFormData({...formData, defaultRepValue: Number(e.target.value)})}
+                                placeholder="10"
+                            />
+                        </div>
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">{t.defRest}</label>
+                        <input 
+                            type="number"
+                            className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:border-primary outline-none text-sm shadow-sm"
+                            value={formData.defaultRestTime || ''}
+                            onChange={e => setFormData({...formData, defaultRestTime: Number(e.target.value)})}
+                            placeholder="60"
+                        />
+                    </div>
                 </div>
             </div>
 

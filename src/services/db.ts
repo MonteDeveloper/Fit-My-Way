@@ -16,12 +16,12 @@ const openDB = (): Promise<IDBDatabase> => {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-
+      
       if (!db.objectStoreNames.contains('exercises')) {
         const exerciseStore = db.createObjectStore('exercises', { keyPath: 'id' });
         exerciseStore.createIndex('name', 'name', { unique: false });
       }
-
+      
       if (!db.objectStoreNames.contains('workouts')) {
         const workoutStore = db.createObjectStore('workouts', { keyPath: 'id' });
         workoutStore.createIndex('name', 'name', { unique: false });
@@ -53,7 +53,7 @@ export const db = {
       const tx = database.transaction('settings', 'readonly');
       const store = tx.objectStore('settings');
       const request = store.get('app-settings');
-
+      
       request.onsuccess = () => {
         resolve(request.result || DEFAULT_SETTINGS);
       };
@@ -115,33 +115,33 @@ export const db = {
         const raw = request.result as any[];
         // Sanitize legacy data on read
         const workouts = raw.map(w => ({
-          ...w,
-          exercises: (w.exercises || []).map((e: any) => {
-            // Ensure new sets array structure
-            let sets = e.sets;
-            if (!Array.isArray(sets)) {
-              // Legacy conversion (sets was a number)
-              const count = typeof e.sets === 'number' ? e.sets : 3;
-              const repStr = String(e.reps || '10');
-              const isTime = repStr.toLowerCase().includes('s') || repStr.toLowerCase().includes('min');
-              const val = parseInt(repStr.replace(/\D/g, '')) || 10;
+            ...w,
+            exercises: (w.exercises || []).map((e: any) => {
+                // Ensure new sets array structure
+                let sets = e.sets;
+                if (!Array.isArray(sets)) {
+                    // Legacy conversion (sets was a number)
+                    const count = typeof e.sets === 'number' ? e.sets : 3;
+                    const repStr = String(e.reps || '10');
+                    const isTime = repStr.toLowerCase().includes('s') || repStr.toLowerCase().includes('min');
+                    const val = parseInt(repStr.replace(/\D/g, '')) || 10;
+                    
+                    sets = Array.from({length: count}).map(() => ({
+                        id: crypto.randomUUID(),
+                        type: isTime ? 'time' : 'reps',
+                        value: val,
+                        weight: 0
+                    }));
+                }
 
-              sets = Array.from({ length: count }).map(() => ({
-                id: crypto.randomUUID(),
-                type: isTime ? 'time' : 'reps',
-                value: val,
-                weight: 0
-              }));
-            }
-
-            return {
-              ...e,
-              sets,
-              reps: undefined, // cleanup legacy
-              restTime: e.restTime || 60, // Default Inter-set rest
-              restAfterExercise: e.restAfterExercise ?? 60 // Default Inter-exercise rest
-            };
-          })
+                return {
+                    ...e,
+                    sets,
+                    reps: undefined, // cleanup legacy
+                    restTime: e.restTime || 60, // Default Inter-set rest
+                    restAfterExercise: e.restAfterExercise ?? 60 // Default Inter-exercise rest
+                };
+            })
         }));
         resolve(workouts);
       };
@@ -217,7 +217,7 @@ export const db = {
       const data = JSON.parse(jsonString);
       const database = await openDB();
       const tx = database.transaction(['exercises', 'workouts', 'settings'], 'readwrite');
-
+      
       if (data.exercises) {
         data.exercises.forEach((e: Exercise) => tx.objectStore('exercises').put(e));
       }
@@ -227,7 +227,7 @@ export const db = {
       if (data.settings) {
         tx.objectStore('settings').put({ ...data.settings, id: 'app-settings' });
       }
-
+      
       return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);

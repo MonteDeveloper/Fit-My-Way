@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, Workout, AppSettings } from '../types';
 import { ExerciseManager } from './components/ExerciseManager';
 import { WorkoutManager } from './components/WorkoutManager';
 import { ActiveWorkout } from './components/ActiveWorkout';
@@ -9,6 +8,7 @@ import { db } from './services/db';
 import { Dumbbell, List, Settings as SettingsIcon, Activity } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getTranslation } from './utils/i18n';
+import { AppSettings, ViewState, Workout } from '@/types';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('workouts');
@@ -132,7 +132,7 @@ const App: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 z-40 pb-safe pb-5">
+                <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 z-40 pb-safe">
                   <div className="max-w-md mx-auto flex justify-around items-center p-3">
                     <button 
                         onClick={() => setView('workouts')} 

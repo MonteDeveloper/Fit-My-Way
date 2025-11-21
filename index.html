@@ -29,6 +29,7 @@
       /* Custom scrollbar for better aesthetics */
       ::-webkit-scrollbar {
         width: 8px;
+        height: 0px; /* Hides horizontal scrollbar mostly */
       }
       ::-webkit-scrollbar-track {
         background: transparent; 
@@ -39,6 +40,28 @@
       }
       .dark ::-webkit-scrollbar-thumb {
         background: #334155; 
+      }
+      
+      /* Utility to hide scrollbar but keep functionality */
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+
+      /* Universal Safe Area Spacing Utilities */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      /* Adds standard padding PLUS safe area (useful for footers) */
+      .pb-safe-area {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+      }
+      /* Adds larger padding PLUS safe area (useful for nav bars) */
+      .pb-safe-area-lg {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
       }
     </style>
 </head>

@@ -1,6 +1,5 @@
+
 import { Language } from "@/types";
-
-
 
 export const translations = {
   en: {
@@ -32,6 +31,8 @@ export const translations = {
       createdExercises: 'Created Exercises:',
       createdWorkouts: 'Created Workouts:',
       none: 'None',
+      jsonError: 'Error: AI response is invalid.',
+      jsonErrorHelp: 'Tip: Try asking again or ensure the AI returns strictly structured JSON. Technical details:',
     },
     nav: {
       workouts: 'Workouts',
@@ -69,7 +70,7 @@ export const translations = {
       noMatchingWorkouts: 'No matching workouts found.',
       notUsed: 'This exercise is not used in any workout.',
       importSuccess: 'Successfully generated exercises.',
-      importError: 'Failed to generate. Check JSON format.',
+      importError: 'Generation failed.',
       defaults: 'Defaults',
       defWeight: 'Default Weight (kg)',
       defReps: 'Default Reps/Time',
@@ -105,7 +106,7 @@ export const translations = {
       descPlaceholder: 'Description (optional)',
       noWorkouts: 'No workouts found.',
       importSuccess: 'Successfully generated workouts.',
-      importError: 'Failed to generate. Ensure exercise names match.',
+      importError: 'Generation failed.',
     },
     active: {
       finish: 'Finish',
@@ -174,6 +175,8 @@ export const translations = {
       createdExercises: 'Esercizi Creati:',
       createdWorkouts: 'Allenamenti Creati:',
       none: 'Nessuno',
+      jsonError: 'Errore: risposta AI non valida.',
+      jsonErrorHelp: 'Suggerimento: prova a inviare nuovamente o verifica che l’AI restituisca solo JSON strutturato. Dettagli tecnici:',
     },
     nav: {
       workouts: 'Allenamenti',
@@ -211,7 +214,7 @@ export const translations = {
       noMatchingWorkouts: 'Nessun allenamento corrispondente.',
       notUsed: 'Questo esercizio non è usato in nessun allenamento.',
       importSuccess: 'Esercizi generati con successo.',
-      importError: 'Generazione fallita. Controlla il formato JSON.',
+      importError: 'Generazione fallita.',
       defaults: 'Default',
       defWeight: 'Peso Default (kg)',
       defReps: 'Rips/Tempo Default',
@@ -247,7 +250,7 @@ export const translations = {
       descPlaceholder: 'Descrizione (opzionale)',
       noWorkouts: 'Nessun allenamento trovato.',
       importSuccess: 'Allenamenti generati con successo.',
-      importError: 'Generazione fallita. Controlla i nomi esercizi.',
+      importError: 'Generazione fallita.',
     },
     active: {
       finish: 'Fine',

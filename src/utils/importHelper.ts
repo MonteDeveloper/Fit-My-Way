@@ -52,6 +52,8 @@ You are an expert fitness AI assistant for the "Fit My Way" app.
 LANGUAGE = ${language}
 Please output ONLY valid JSON data matching the structure below. No markdown.
 
+IMAGES MUST BE EMPTY STRINGS EVERYWHERE
+
 ${contextSection}
 
 Structure:
@@ -77,6 +79,28 @@ I can include my specific requests immediately in this prompt OR wait for my nex
 - Otherwise, respond with a message equivalent to 'Waiting for your instructions! Tell me if you want a specific workout or a list of exercises.' in the language specified. 
 - All your responses, including the JSON and any messages, must be in the language specified.
 `.trim();
+};
+
+// -- Helper: Image Validator --
+// Tries to load the image to verify it is a valid direct link.
+export const validateImageUrls = async (exercises: Exercise[]): Promise<Exercise[]> => {
+    const validated = await Promise.all(exercises.map(async (ex) => {
+        if (!ex.imageUrl) return ex;
+        try {
+            // Attempt to load image to validate validity/accessibility
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = ex.imageUrl!;
+            });
+            return ex;
+        } catch {
+            // If load fails, remove the URL but keep the exercise
+            return { ...ex, imageUrl: '' }; 
+        }
+    }));
+    return validated;
 };
 
 // -- Universal Parsing Logic --
@@ -178,6 +202,6 @@ export const parseUniversalData = (jsonString: string, existingExercises: Exerci
 
   } catch (e) {
     console.error("Parse error", e);
-    throw new Error("Invalid JSON format");
+    throw new Error("Invalid JSON format or structure.");
   }
 };

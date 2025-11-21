@@ -229,12 +229,13 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
         
-        <div className="w-full aspect-[4/3] bg-gray-100 dark:bg-slate-800 overflow-hidden shadow-inner border-b border-gray-200 dark:border-slate-700 shrink-0">
+        {/* UPDATED: Background set to black, object-contain to match Preview mode */}
+        <div className="w-full aspect-[4/3] bg-black overflow-hidden shadow-inner border-b border-gray-200 dark:border-slate-700 shrink-0 relative">
             {exerciseDef.imageUrl ? (
                 <img 
                     src={exerciseDef.imageUrl} 
                     alt={exerciseDef.name} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     style={{
                         transform: `translate(${transform.x}%, ${transform.y}%) scale(${transform.scale})`,
                         transformOrigin: 'center',
@@ -242,7 +243,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
                     onError={(e) => e.currentTarget.style.display = 'none'}
                 />
             ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-100 dark:bg-slate-800">
                     <ImageIcon size={64} />
                     <span className="mt-2 text-sm">{t.noVisual}</span>
                 </div>
@@ -446,7 +447,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
                          <Info size={24} />}
                     </div>
                     <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm whitespace-pre-wrap">
                         {alertState.message}
                     </p>
                 </div>

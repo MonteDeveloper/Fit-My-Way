@@ -5,7 +5,7 @@ import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
 import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
-import { generateAIPrompt, parseUniversalData } from '../utils/importHelper';
+import { parseUniversalData, generateAIPrompt, validateImageUrls } from '../utils/importHelper';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;
@@ -141,8 +141,11 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
     try {
       const { newExercises, newWorkouts } = parseUniversalData(jsonText, allExercises);
 
+      // Validate Images concurrently
+      const validatedExercises = await validateImageUrls(newExercises);
+
       // Save new exercises first
-      for (const ex of newExercises) {
+      for (const ex of validatedExercises) {
           await db.saveExercise(ex);
       }
       
@@ -158,8 +161,8 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
       setShowImportModal(false);
       
       // Summary
-      const exList = newExercises.length > 0 
-        ? newExercises.map(e => `• ${e.name}`).join('\n') 
+      const exList = validatedExercises.length > 0 
+        ? validatedExercises.map(e => `• ${e.name}`).join('\n') 
         : tCommon.none;
       const wkList = newWorkouts.length > 0 
         ? newWorkouts.map(w => `• ${w.name}`).join('\n') 
@@ -169,9 +172,11 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
 
       showAlert(tCommon.importSummaryTitle, createdSummary, 'success');
 
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      showAlert("Error", t.importError, 'error');
+      const errorDetail = e.message || "Unknown error";
+      const displayMsg = `${tCommon.jsonError}\n\n${tCommon.jsonErrorHelp}\n${errorDetail}`;
+      showAlert("Error", displayMsg, 'error');
     }
   };
 
@@ -1539,7 +1544,7 @@ export const WorkoutManager: React.FC<WorkoutManagerProps> = ({
                     )}
                   </div>
                   <h3 className="font-bold text-xl mb-2">{alertState.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm whitespace-pre-wrap">
                     {alertState.message}
                   </p>
                 </div>
