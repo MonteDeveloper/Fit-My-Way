@@ -1,9 +1,11 @@
+
 import React, { useRef, useState } from 'react';
 import { db } from '../services/db';
 import { Download, Upload, Trash2, Moon, Sun, AlertTriangle, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AppSettings } from '@/types';
+import { useModalRegistry } from '../contexts/ModalContext';
 
 interface SettingsProps {
   settings: AppSettings;
@@ -24,6 +26,10 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings }
   
   const t = getTranslation(settings.language || 'en').settings;
   const tCommon = getTranslation(settings.language || 'en').common;
+
+  // Register Modals to Context to hide Navbar
+  useModalRegistry(showResetModal);
+  useModalRegistry(!!alertState);
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info') => {
       setAlertState({ isOpen: true, title, message, type });

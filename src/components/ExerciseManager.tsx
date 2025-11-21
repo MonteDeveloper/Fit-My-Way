@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, ChevronRight, Activity, Copy, RotateCcw, Sparkles, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
@@ -7,24 +8,33 @@ import { TextImportModal } from './TextImportModal';
 import { OptimizedImage } from './OptimizedImage';
 import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
 import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
+import { useModalRegistry } from '../contexts/ModalContext';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
 const DEFAULT_TRANSFORM: ImageTransform = { x: 0, y: 0, scale: 1 };
 
-// Animation Variants
-const mainModalVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
-  transition: { duration: 0.2 }
+// NO BOUNCY ANIMATIONS - Strict Tween
+const listVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, x: 0, scale: 1, zIndex: 0, transition: { duration: 0.2 } },
+  exit: { opacity: 0.5, scale: 0.98, x: '-5%', zIndex: 0, transition: { duration: 0.2 } }
 };
 
-const subModalVariants = {
-  initial: { opacity: 0, x: -50 }, // Slide in from left
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -50, transition: { duration: 0.2 } }, // Slide out to left
-  transition: { duration: 0.2 }
+const detailVariants = {
+  initial: { x: '100%', opacity: 0, zIndex: 20 },
+  animate: { 
+      x: '0%', 
+      opacity: 1, 
+      zIndex: 20,
+      transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 } // Fixed: No Spring/Bounce
+  },
+  exit: { 
+      x: '100%', 
+      opacity: 0, 
+      zIndex: 20, 
+      transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 } // Fixed: No Spring/Bounce
+  }
 };
 
 interface ExerciseManagerProps {
@@ -32,6 +42,7 @@ interface ExerciseManagerProps {
   onClearPendingId?: () => void;
   onNavigateToWorkout?: (id: string) => void;
   language: Language;
+  onViewModeChange?: (isList: boolean) => void;
 }
 
 interface AlertState {
@@ -45,7 +56,8 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   initialExerciseId, 
   onClearPendingId,
   onNavigateToWorkout,
-  language
+  language,
+  onViewModeChange
 }) => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -68,6 +80,18 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   const tMuscles = getTranslation(language).muscles;
   const tCommon = getTranslation(language).common;
   const tWorkouts = getTranslation(language).workouts;
+
+  // Register Modals to Context to hide Navbar
+  useModalRegistry(showImportModal);
+  useModalRegistry(!!exerciseToDelete);
+  useModalRegistry(!!alertState);
+
+  // Notify parent about Navbar visibility (View Mode based)
+  useEffect(() => {
+    if (onViewModeChange) {
+        onViewModeChange(mode === 'list');
+    }
+  }, [mode, onViewModeChange]);
 
   useEffect(() => {
     loadData();
@@ -289,16 +313,16 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
   });
 
   return (
-    <div className="h-[100dvh] bg-white dark:bg-dark overflow-hidden flex flex-col">
-      <AnimatePresence mode="wait" initial={false}>
+    <div className="h-[100dvh] bg-white dark:bg-dark overflow-hidden flex flex-col relative w-full">
+      <AnimatePresence initial={false}>
         {mode === 'list' && (
           <motion.div
             key="list"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col h-full"
+            variants={listVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="absolute inset-0 w-full h-full flex flex-col bg-white dark:bg-dark"
           >
             <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 shadow-sm">
                 {/* Header Top Row */}
@@ -336,7 +360,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         />
                     </div>
 
-                    {/* Filters Container - Placed BELOW search bar with proper spacing */}
+                    {/* Filters Container */}
                     <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x pb-1">
                         <button 
                         onClick={() => setFilterMuscles([])}
@@ -367,7 +391,6 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 return (
                     <div 
                         key={exercise.id}
-                        // LIST OPTIMIZATION: content-visibility acts like virtualization
                         style={{ 
                             contentVisibility: 'auto', 
                             containIntrinsicSize: '80px' 
@@ -377,19 +400,19 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         onClick={() => openDetail(exercise)}
                         className="w-full text-left bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                         >
-                        <div className="w-20 aspect-[4/3] bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
+                        <div className="w-20 aspect-[4/3] bg-gray-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0 relative">
                             {exercise.imageUrl ? (
                                 <OptimizedImage 
                                     src={exercise.imageUrl} 
                                     alt="" 
-                                    className="w-full h-full object-contain" 
+                                    className="w-full h-full" 
                                     style={{
-                                    transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
-                                    transformOrigin: 'center',
-                                }}
+                                        transform: `translate(${tVal.x}%, ${tVal.y}%) scale(${tVal.scale})`,
+                                        transformOrigin: 'center',
+                                    }}
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-700">
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-slate-800">
                                     <ImageIcon size={20} />
                                 </div>
                             )}
@@ -418,8 +441,11 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         {mode === 'detail' && selectedExercise && (
           <motion.div
             key="detail"
-            {...subModalVariants}
-            className="fixed inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
+            variants={detailVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="absolute inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
           >
             {(() => {
                 const tVal = selectedExercise.imageTransform || DEFAULT_TRANSFORM;
@@ -431,7 +457,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
 
                 return (
                     <>
-                    {/* Detail Header: Back Left, Title Center, Actions Right */}
+                    {/* Detail Header */}
                     <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[auto_1fr_auto] items-center shadow-sm gap-4">
                         <button onClick={() => setMode('list')} className="w-10 h-10 flex items-center justify-center rounded-full -ml-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <ChevronLeft size={24} />
@@ -454,7 +480,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-safe-area">
                     
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words leading-tight">
                         {selectedExercise.name}
@@ -525,7 +551,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                                                         <OptimizedImage 
                                                             src={w.coverImage} 
                                                             alt="" 
-                                                            className="w-full h-full object-contain"
+                                                            className="w-full h-full"
                                                             style={{ transform: `translate(${ct.x}%, ${ct.y}%) scale(${ct.scale})`}}
                                                         />
                                                     ) : (
@@ -557,10 +583,13 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
         {mode === 'edit' && (
           <motion.div
             key="edit"
-            {...(selectedExercise ? subModalVariants : mainModalVariants)}
-            className="fixed inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
+            variants={detailVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="absolute inset-0 z-50 bg-white dark:bg-dark flex flex-col h-full"
           >
-            {/* Standardized Modal Header */}
+            {/* Edit Header */}
             <div className="flex-none bg-white/95 dark:bg-dark/95 backdrop-blur-md z-20 px-4 py-3 border-b border-gray-100 dark:border-slate-800 grid grid-cols-[40px_1fr_40px] items-center shadow-sm">
                 <div className="flex justify-start">
                     {selectedExercise && (
@@ -579,6 +608,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 </div>
             </div>
 
+            {/* Form Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t.name}</label>
@@ -612,7 +642,7 @@ export const ExerciseManager: React.FC<ExerciseManagerProps> = ({
                 </div>
             </div>
 
-            {/* Default Values Section - Grouped */}
+            {/* Default Values Section */}
             <div className="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-4 border border-gray-100 dark:border-slate-700 space-y-3">
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-2">
                     {t.defaults}
