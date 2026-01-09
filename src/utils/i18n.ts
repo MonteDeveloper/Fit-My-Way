@@ -1,4 +1,3 @@
-
 import { Language } from "@/types";
 
 export const translations = {
@@ -119,6 +118,7 @@ export const translations = {
       finishConfirm: 'Last set completed. Finish workout?',
       copied: 'Workout finished! Summary copied to clipboard.',
       noVisual: 'No Visual',
+      nextLabel: 'Next',
     },
     settings: {
       title: 'Settings',
@@ -263,6 +263,7 @@ export const translations = {
       finishConfirm: 'Ultima serie completata. Terminare?',
       copied: 'Allenamento terminato! Riepilogo copiato.',
       noVisual: 'Nessuna Immagine',
+      nextLabel: 'Prossimo',
     },
     settings: {
       title: 'Impostazioni',

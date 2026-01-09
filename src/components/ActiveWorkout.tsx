@@ -143,15 +143,13 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
       });
     } catch (e) {
       console.warn("Clipboard write failed", e);
-      // Still close if clipboard fails, but maybe show a small error? 
-      // Or just proceed since data is cleared.
       onClose();
     }
   };
 
   const handleCloseAlert = () => {
       setAlertState(null);
-      onClose(); // Close the workout view after the success alert is dismissed
+      onClose();
   };
 
   const prevExercise = () => {
@@ -228,11 +226,10 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        
-        {/* UPDATED: Background set to black, object-contain to match Preview mode */}
         <div className="w-full aspect-[4/3] bg-black overflow-hidden shadow-inner border-b border-gray-200 dark:border-slate-700 shrink-0 relative">
             {exerciseDef.imageUrl ? (
                 <img 
+                    key={`${exerciseDef.id}-${isResting}`} // Key forces remount when rest toggles, ensuring GIF plays
                     src={exerciseDef.imageUrl} 
                     alt={exerciseDef.name} 
                     className="w-full h-full object-contain"
@@ -368,20 +365,69 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
       </div>
 
       {isResting && (
-            <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex flex-col items-center justify-center p-8">
-                <div className="text-emerald-500 mb-4 animate-bounce">
-                    <Timer size={64} />
+            <div className="absolute inset-0 z-50 bg-white dark:bg-slate-900 flex flex-col">
+                {/* 1. PREVIEW SECTION (Top) */}
+                <div className="w-full aspect-[4/3] bg-black relative shrink-0 border-b border-gray-100 dark:border-slate-800">
+                     {exerciseDef.imageUrl ? (
+                        <img 
+                            src={exerciseDef.imageUrl} 
+                            className="w-full h-full object-contain"
+                            style={{
+                                transform: `translate(${transform.x}%, ${transform.y}%) scale(${transform.scale})`,
+                                transformOrigin: 'center',
+                            }}
+                            alt=""
+                        />
+                     ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-slate-800">
+                            <ImageIcon size={48} className="text-gray-400" />
+                        </div>
+                     )}
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
+                     
+                     {/* Horizontal Layout for Next Exercise Preview */}
+                     <div className="absolute bottom-0 left-0 w-full p-4 text-white z-20 pb-6">
+                         <div className="flex items-end justify-between gap-4">
+                             <div className="flex-1 min-w-0">
+                                <span className="px-2 py-0.5 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-wider rounded mb-1 inline-block">
+                                     {t.nextLabel}
+                                 </span>
+                                 <h2 className="text-2xl font-black leading-none truncate text-white">{exerciseDef.name}</h2>
+                             </div>
+                             <div className="text-right shrink-0 text-white">
+                                 <div className="text-2xl font-black leading-none">
+                                     {currentSet.type === 'time' ? `${currentSet.value}s` : `${currentSet.value}`}
+                                     {currentSet.type === 'reps' && <span className="text-xs font-medium ml-0.5 align-top">x</span>}
+                                 </div>
+                                 <div className="text-xs text-gray-300 font-medium mt-1">
+                                     Set {currentSetIndex + 1}/{totalSets}
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{t.restRecover}</h2>
-                <div className="text-8xl font-black font-mono text-primary tabular-nums mb-8">
-                    {restTimer}
+
+                {/* 2. TIMER SECTION (Bottom) */}
+                <div className="flex-1 flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 relative">
+                     <div className="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-slate-700 to-transparent"></div>
+                     
+                     <div className="flex flex-col items-center mb-8">
+                        <span className="text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mb-4 animate-pulse">
+                            {t.restRecover}
+                        </span>
+                        <div className="text-9xl font-black font-mono text-primary tabular-nums tracking-tighter leading-none">
+                            {restTimer}
+                        </div>
+                     </div>
+
+                     <button 
+                        onClick={() => setIsResting(false)}
+                        className="w-full max-w-xs py-4 bg-gray-100 dark:bg-slate-800 rounded-2xl font-bold text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700 transition active:scale-[0.98] flex items-center justify-center gap-3 shadow-sm border border-gray-200 dark:border-slate-700"
+                    >
+                        <SkipForward size={20} />
+                        {t.skipRest}
+                    </button>
                 </div>
-                <button 
-                    onClick={() => setIsResting(false)}
-                    className="px-8 py-3 bg-gray-200 dark:bg-slate-700 rounded-full font-bold text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-slate-600 transition"
-                >
-                    {t.skipRest}
-                </button>
             </div>
       )}
 

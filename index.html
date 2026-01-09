@@ -2,7 +2,7 @@
 <html lang="it" class="h-full overflow-hidden">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fit My Way</title>
 
     <link rel="apple-touch-icon" sizes="57x57" href="/appFiles/apple-icon-57x57.png">
@@ -63,7 +63,36 @@
       .pb-safe-area-lg {
         padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
       }
+    /* --- GLOBAL MOBILE ZOOM PREVENTION --- */
+      
+      /* 1. Disable double-tap zoom and pinch-zoom via CSS standard properties */
+      html, body {
+        touch-action: pan-x pan-y;
+      }
+
+      /* 2. Force 16px font size on inputs to prevent iOS focus zoom */
+      /* This is the definitive fix for the search bar zoom issue */
+      @media screen and (max-width: 768px) {
+        input, textarea, select {
+          font-size: 16px !important;
+        }
+      }
     </style>
+    <script>
+      /* 3. Prevent pinch-zoom via JavaScript (Critical for iOS Safari which ignores user-scalable=no) */
+      document.addEventListener('gesturestart', function (e) {
+        e.preventDefault();
+      });
+
+      /* 4. Prevent double-tap zoom while ensuring buttons remain responsive */
+      /* Note: touch-action: pan-x pan-y usually handles this, but strictly preventing zooming gestures ensures compliance */
+      document.addEventListener('gesturechange', function (e) {
+        e.preventDefault();
+      }); 
+      document.addEventListener('gestureend', function (e) {
+        e.preventDefault();
+      });
+    </script>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-dark dark:text-gray-100 transition-colors duration-200 h-full overflow-hidden touch-none">
     <div id="root" class="h-full overflow-hidden"></div>
