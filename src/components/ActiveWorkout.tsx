@@ -58,7 +58,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ workout, resume = 
 
   useEffect(() => {
     // --- Audio Unlock Logic for Safari/iOS ---
-    startSoundRef.current = new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3');
+    startSoundRef.current = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/descent/gotitem.mp3');
     startSoundRef.current.preload = 'auto';
 
     const unlockAudio = () => {
