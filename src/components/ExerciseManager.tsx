@@ -9,7 +9,7 @@ import { TextImportModal } from './TextImportModal';
 import { generateAIPrompt, parseUniversalData, validateImageUrls } from '../utils/importHelpers';
 import { OptimizedImage } from './OptimizedImage';
 import { useModalRegistry } from '../contexts/ModalContext';
-import { SearchBar } from './SearchBar';
+import { SearchBar } from './Searchbar';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 
