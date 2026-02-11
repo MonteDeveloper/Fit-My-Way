@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Exercise, MUSCLE_GROUPS, ImageTransform, Workout, Language } from '../../types';
 import { db } from '../services/db';
 import { Plus, Search, Pencil, Trash2, ChevronLeft, Image as ImageIcon, Move, ZoomIn, ZoomOut, Clipboard, ChevronRight, Activity, Copy, RotateCcw, Sparkles, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
+import { generateAIPrompt, parseUniversalData, validateImageUrls } from '../utils/importHelpers';
 import { OptimizedImage } from './OptimizedImage';
-import { ImageTransform, Language, Exercise, Workout, MUSCLE_GROUPS } from '@/types';
-import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 import { useModalRegistry } from '../contexts/ModalContext';
-import { SearchBar } from './Searchbar';
+import { SearchBar } from './SearchBar';
 
 type ViewMode = 'list' | 'detail' | 'edit';
 

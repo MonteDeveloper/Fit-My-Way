@@ -1,4 +1,5 @@
-import { Language } from "@/types";
+
+import { Language } from '../../types';
 
 export const translations = {
   en: {
@@ -32,6 +33,7 @@ export const translations = {
       none: 'None',
       jsonError: 'Error: AI response is invalid.',
       jsonErrorHelp: 'Tip: Try asking again or ensure the AI returns strictly structured JSON. Technical details:',
+      confirm: 'Confirm',
     },
     nav: {
       workouts: 'Workouts',
@@ -97,7 +99,7 @@ export const translations = {
       restSets: 'Rest (Sets)',
       restEnd: 'Rest (End)',
       presets: 'Presets',
-      customUrl: 'Custom URL',
+      customUrl: 'URL Personalizzato',
       use: 'Use',
       copy: 'Copy',
       add: 'Add',
@@ -116,9 +118,14 @@ export const translations = {
       restRecover: 'Rest & Recover',
       skipRest: 'Skip Rest',
       finishConfirm: 'Last set completed. Finish workout?',
-      copied: 'Workout finished! Summary copied to clipboard.',
       noVisual: 'No Visual',
       nextLabel: 'Next',
+      logRepsPrompt: 'How many reps did you complete?',
+      logTimePrompt: 'How many seconds did you hold?',
+      reportCopied: 'Workout report copied!',
+      copyReport: 'Copy Workout Report',
+      reportDuration: 'Total Duration',
+      reportExercises: 'Exercises',
     },
     settings: {
       title: 'Settings',
@@ -177,6 +184,7 @@ export const translations = {
       none: 'Nessuno',
       jsonError: 'Errore: risposta AI non valida.',
       jsonErrorHelp: 'Suggerimento: prova a inviare nuovamente o verifica che l’AI restituisca solo JSON strutturato. Dettagli tecnici:',
+      confirm: 'Conferma',
     },
     nav: {
       workouts: 'Allenamenti',
@@ -261,9 +269,14 @@ export const translations = {
       restRecover: 'Recupero',
       skipRest: 'Salta',
       finishConfirm: 'Ultima serie completata. Terminare?',
-      copied: 'Allenamento terminato! Riepilogo copiato.',
       noVisual: 'Nessuna Immagine',
       nextLabel: 'Prossimo',
+      logRepsPrompt: 'Quante ripetizioni sei riuscito a fare?',
+      logTimePrompt: 'Quanti secondi sei riuscito a mantenere?',
+      reportCopied: 'Report dell\'allenamento copiato!',
+      copyReport: 'Copia Report Allenamento',
+      reportDuration: 'Durata Totale',
+      reportExercises: 'Esercizi',
     },
     settings: {
       title: 'Impostazioni',

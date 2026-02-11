@@ -2,9 +2,9 @@
 import React, { useRef, useState } from 'react';
 import { db } from '../services/db';
 import { Download, Upload, Trash2, Moon, Sun, AlertTriangle, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { AppSettings } from '../../types';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AppSettings } from '@/types';
 import { useModalRegistry } from '../contexts/ModalContext';
 
 interface SettingsProps {
@@ -149,7 +149,7 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings }
       </div>
 
       <div className="text-center text-xs text-gray-400 pt-10">
-        Fit My Way v1.2.0
+        Fit My Way • by Monte
       </div>
 
       <AnimatePresence>

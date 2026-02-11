@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Workout, Exercise, WorkoutExercise, WORKOUT_COVERS, ActiveSessionState, ImageTransform, MUSCLE_GROUPS, WorkoutSet, Language } from '../../types';
 import { db } from '../services/db';
 import { Plus, Play, Pencil, Trash2, ChevronUp, ChevronDown, X, ChevronLeft, Search, Copy, Clock, Dumbbell, Image as ImageIcon, Move, ZoomIn, ZoomOut, RotateCw, Clipboard, ChevronRight, Activity, RotateCcw, Check, FileText, Sparkles, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TextImportModal } from './TextImportModal';
+import { generateAIPrompt, parseUniversalData, validateImageUrls } from '../utils/importHelpers';
 import { OptimizedImage } from './OptimizedImage';
-import { Workout, Language, ImageTransform, Exercise, ActiveSessionState, WORKOUT_COVERS, WorkoutExercise, WorkoutSet, MUSCLE_GROUPS } from '@/types';
-import { parseUniversalData, validateImageUrls, generateAIPrompt } from '../utils/importHelper';
 import { useModalRegistry } from '../contexts/ModalContext';
-import { SearchBar } from './Searchbar';
+import { SearchBar } from './SearchBar';
 
 interface WorkoutManagerProps {
   onStartWorkout: (workout: Workout, resume?: boolean) => void;

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, Terminal, ChevronDown, ChevronLeft, Clipboard, Info, AlertCircle } from 'lucide-react';
+import { Language } from '../../types';
 import { getTranslation } from '../utils/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Language } from '@/types';
 
 interface TextImportModalProps {
   isOpen: boolean;

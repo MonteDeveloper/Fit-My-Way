@@ -1,4 +1,5 @@
-import { AppSettings, Exercise, Workout, ActiveSessionState } from "@/types";
+
+import { Exercise, Workout, AppSettings, ActiveSessionState } from '../../types';
 
 const DB_NAME = 'FitMyWayDB';
 const DB_VERSION = 2; // Incremented for active_session
